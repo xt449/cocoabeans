@@ -1,6 +1,7 @@
-use crate::cocoabeans::protocol;
 use std::io;
 use std::net::{SocketAddr, TcpListener, TcpStream};
+
+use crate::cocoabeans::protocol;
 
 pub fn start() -> io::Result<()> {
     println!("Hello, world!");

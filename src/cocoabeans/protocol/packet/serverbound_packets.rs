@@ -1,47 +1,25 @@
 use crate::cocoabeans::protocol::packet::packet_listener::PacketListener;
 
-pub enum ServerBoundPacket<'t> {
-    Handshaking { payload: &'t dyn ServerBound },
-    Status { payload: &'t dyn ServerBound },
-    Login { payload: &'t dyn ServerBound },
-    Play { payload: &'t dyn ServerBound },
+pub struct ServerBoundPacket {
+    payload: dyn ServerBoundPayload,
 }
 
-impl ServerBoundPacket<'static> {
+impl ServerBoundPacket {
     fn handle(&self, listener: &mut PacketListener) {
-        match self {
-            ServerBoundPacket::Handshaking { payload } | ServerBoundPacket::Status { payload } => {
-                payload.handle(listener);
-            }
-            //=> {payload.handle(listener);}
-            ServerBoundPacket::Login { payload } => {
-                payload.handle(listener);
-            }
-            ServerBoundPacket::Play { payload } => {
-                payload.handle(listener);
-            }
-        }
+        self.handle(listener);
     }
 }
 
-pub trait ServerBound {
+pub trait ServerBoundPayload {
     fn handle(&self, listener: &mut PacketListener);
 }
 
 pub mod handshaking {
     use crate::cocoabeans::protocol::packet::packet_listener::{IPacketListener, PacketListener};
-    use crate::cocoabeans::protocol::packet::serverbound_packets::ServerBound;
+    use crate::cocoabeans::protocol::packet::serverbound_packets::ServerBoundPayload;
     use crate::cocoabeans::protocol::types;
 
-    pub struct HandshakingPacket {
-        pub payload: dyn ServerBound,
-    }
-
-    impl ServerBound for HandshakingPacket {
-        fn handle(&self, listener: &mut PacketListener) {
-            self.payload.handle(listener);
-        }
-    }
+    // payloads
 
     pub struct HandshakePayload {
         pub protocol_version: types::VarInt,
@@ -50,7 +28,7 @@ pub mod handshaking {
         pub next_state: types::VarInt,
     }
 
-    impl ServerBound for HandshakePayload {
+    impl ServerBoundPayload for HandshakePayload {
         fn handle(&self, listener: &mut PacketListener) {
             listener.handle_handshaking_handshake(self);
         }
@@ -59,17 +37,7 @@ pub mod handshaking {
 
 pub mod status {
     use crate::cocoabeans::protocol::packet::packet_listener::{IPacketListener, PacketListener};
-    use crate::cocoabeans::protocol::packet::serverbound_packets::ServerBound;
-
-    pub struct StatusPacket {
-        payload: dyn ServerBound,
-    }
-
-    impl ServerBound for StatusPacket {
-        fn handle(&self, listener: &mut PacketListener) {
-            self.payload.handle(listener);
-        }
-    }
+    use crate::cocoabeans::protocol::packet::serverbound_packets::ServerBoundPayload;
 
     // payloads
 
@@ -77,7 +45,7 @@ pub mod status {
         // no fields
     }
 
-    impl ServerBound for RequestPayload {
+    impl ServerBoundPayload for RequestPayload {
         fn handle(&self, listener: &mut PacketListener) {
             listener.handle_status_request(self);
         }
@@ -87,7 +55,7 @@ pub mod status {
         payload: i64,
     }
 
-    impl ServerBound for PingPayload {
+    impl ServerBoundPayload for PingPayload {
         fn handle(&self, listener: &mut PacketListener) {
             listener.handle_status_ping(self);
         }
@@ -95,19 +63,10 @@ pub mod status {
 }
 
 pub mod login {
-    use crate::cocoabeans::protocol::packet::packet_listener::{IPacketListener, PacketListener};
-    use crate::cocoabeans::protocol::packet::serverbound_packets::ServerBound;
     use bytes::Bytes;
 
-    pub struct LoginPacket {
-        pub payload: dyn ServerBound,
-    }
-
-    impl ServerBound for LoginPacket {
-        fn handle(&self, listener: &mut PacketListener) {
-            self.payload.handle(listener);
-        }
-    }
+    use crate::cocoabeans::protocol::packet::packet_listener::{IPacketListener, PacketListener};
+    use crate::cocoabeans::protocol::packet::serverbound_packets::ServerBoundPayload;
 
     // payloads
 
@@ -115,7 +74,7 @@ pub mod login {
         username: String,
     }
 
-    impl ServerBound for StartPayload {
+    impl ServerBoundPayload for StartPayload {
         fn handle(&self, listener: &mut PacketListener) {
             listener.handle_login_start(self);
         }
@@ -126,7 +85,7 @@ pub mod login {
         verification_token: Bytes,
     }
 
-    impl ServerBound for EncryptionResponsePayload {
+    impl ServerBoundPayload for EncryptionResponsePayload {
         fn handle(&self, listener: &mut PacketListener) {
             listener.handle_login_encryption_response(self);
         }
@@ -138,7 +97,7 @@ pub mod login {
         data: Bytes,
     }
 
-    impl ServerBound for PluginResponsePayload {
+    impl ServerBoundPayload for PluginResponsePayload {
         fn handle(&self, listener: &mut PacketListener) {
             listener.handle_login_plugin_response(self);
         }
@@ -146,18 +105,7 @@ pub mod login {
 }
 
 pub mod play {
-    use crate::cocoabeans::protocol::packet::packet_listener::PacketListener;
-    use crate::cocoabeans::protocol::packet::serverbound_packets::ServerBound;
-
-    pub struct PlayPacket {
-        pub payload: dyn ServerBound,
-    }
-
-    impl ServerBound for PlayPacket {
-        fn handle(&self, listener: &mut PacketListener) {
-            self.payload.handle(listener);
-        }
-    }
-
     // payloads
+
+    // TODO
 }

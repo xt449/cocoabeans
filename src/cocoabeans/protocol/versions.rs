@@ -1,5 +1,6 @@
-use crate::cocoabeans::protocol::packet::clientbound_packets::ClientBoundPacket;
 use std::net::TcpStream;
+
+use crate::cocoabeans::protocol::packet::serverbound_packets::ServerBoundPayload;
 
 // const MANAGER: std::collections::HashMap<i32, &'static dyn ProtocolVersion> = std::collections::HashMap::new();
 //
@@ -15,11 +16,10 @@ use std::net::TcpStream;
 //     return MANAGER[&version];
 // }
 
-pub type ClientBoundPacketBuilder = fn(stream: TcpStream) -> dyn ClientBoundPacket;
+pub type ServerBoundPacketBuilder = fn(stream: TcpStream) -> dyn ServerBoundPayload;
 
 pub trait ProtocolVersion {
-    // Handshaking
-    fn get_handshaking_handshake_id(&self) -> u8;
+    // Handshaking - none
 
     // Status
     fn get_status_response_id(&self) -> u8;
@@ -35,16 +35,15 @@ pub trait ProtocolVersion {
     // Play - TODO
 
     // Incoming
-    fn get_builder_from_id(&self, packet_id: u8) -> ClientBoundPacketBuilder;
+    fn get_builder_from_id(&self, packet_id: u8) -> ServerBoundPacketBuilder;
 }
 
 pub struct V758 {}
 
 impl ProtocolVersion for V758 {
-    fn get_handshaking_handshake_id(&self) -> u8 {
-        0x00
-    }
+    // Handshaking - none
 
+    // Status
     fn get_status_response_id(&self) -> u8 {
         0x00
     }
@@ -53,6 +52,7 @@ impl ProtocolVersion for V758 {
         0x01
     }
 
+    // Login
     fn get_login_disconnect_id(&self) -> u8 {
         0x00
     }
@@ -73,7 +73,10 @@ impl ProtocolVersion for V758 {
         0x04
     }
 
-    fn get_builder_from_id(&self, packet_id: u8) -> ClientBoundPacketBuilder {
+    // Play
+
+    // Incoming
+    fn get_builder_from_id(&self, packet_id: u8) -> ServerBoundPacketBuilder {
         todo!()
     }
 }
