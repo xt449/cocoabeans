@@ -1,22 +1,5 @@
-use std::net::TcpStream;
-
-use crate::cocoabeans::protocol::packet::serverbound_packets::ServerBoundPayload;
-
-// const MANAGER: std::collections::HashMap<i32, &'static dyn ProtocolVersion> = std::collections::HashMap::new();
-//
-// pub fn register_default_protocol() {
-//     register_protocol_version(758, &V758 {})
-// }
-//
-// pub fn register_protocol_version(version: i32, protocol: &'static dyn ProtocolVersion) {
-//     MANAGER[&version] = protocol;
-// }
-//
-// pub fn get_protocol_version(version: i32) -> &'static dyn ProtocolVersion {
-//     return MANAGER[&version];
-// }
-
-pub type ServerBoundPacketBuilder = fn(stream: TcpStream) -> dyn ServerBoundPayload;
+use crate::cocoabeans::protocol::packet::serverbound::ServerBoundPacketBuilder;
+use crate::cocoabeans::protocol::ConnectionState;
 
 pub trait ProtocolVersion {
     // Handshaking - none
@@ -35,7 +18,11 @@ pub trait ProtocolVersion {
     // Play - TODO
 
     // Incoming
-    fn get_builder_from_id(&self, packet_id: u8) -> ServerBoundPacketBuilder;
+    fn get_builder_from_id(
+        &self,
+        connection_state: &ConnectionState,
+        packet_id: u8,
+    ) -> Option<ServerBoundPacketBuilder>;
 }
 
 pub struct V758 {}
@@ -73,10 +60,39 @@ impl ProtocolVersion for V758 {
         0x04
     }
 
-    // Play
+    // Play - TODO
 
     // Incoming
-    fn get_builder_from_id(&self, packet_id: u8) -> ServerBoundPacketBuilder {
-        todo!()
+    fn get_builder_from_id(
+        &self,
+        connection_state: &ConnectionState,
+        packet_id: u8,
+    ) -> Option<ServerBoundPacketBuilder> {
+        return match connection_state {
+            ConnectionState::HANDSHAKING => match packet_id {
+                _ => {
+                    todo!();
+                    None
+                }
+            },
+            ConnectionState::STATUS => match packet_id {
+                _ => {
+                    todo!();
+                    None
+                }
+            },
+            ConnectionState::LOGIN => match packet_id {
+                _ => {
+                    todo!();
+                    None
+                }
+            },
+            ConnectionState::PLAY => match packet_id {
+                _ => {
+                    todo!();
+                    None
+                }
+            },
+        };
     }
 }

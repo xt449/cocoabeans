@@ -1,22 +1,27 @@
-use std::io;
+use std::error::Error;
 use std::net::{SocketAddr, TcpListener, TcpStream};
 
-use crate::cocoabeans::protocol;
+use crate::cocoabeans::protocol::client_connection::ClientConnectionHandler;
 
-pub fn start() -> io::Result<()> {
-    println!("Hello, world!");
-
-    // Setup the TCP server socket.
-    let address: SocketAddr = "0.0.0.0:25565".parse().unwrap();
-    let server = TcpListener::bind(address)?;
-
-    let protocol_version: &dyn protocol::versions::ProtocolVersion = &protocol::versions::V758 {};
-
-    handle_connection(server.accept());
-
-    return Ok(());
+fn handle_connection(connection: (TcpStream, SocketAddr)) {
+    ClientConnectionHandler::start(connection);
 }
 
-async fn handle_connection(result: io::Result<(TcpStream, SocketAddr)>) {
-    // idk
+pub fn start() -> Result<(), Box<dyn Error>> {
+    // Setup the TCP server socket.
+    let address: SocketAddr = "0.0.0.0:25565".parse()?;
+    let server = TcpListener::bind(address)?;
+
+    println!("Server started!\nNow listening on '{}'", address);
+
+    loop {
+        match server.accept() {
+            Ok(connection) => {
+                std::thread::spawn(move || handle_connection(connection));
+            }
+            Err(e) => {
+                println!("Error accepting incoming connection: {}", e);
+            }
+        }
+    }
 }
