@@ -1,7 +1,7 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
-use crate::cocoabeans::json_macros::Json;
+use crate::cocoabeans::macros::json::Json;
 
 pub struct MinecraftStream {
     stream: TcpStream,

@@ -1,9 +1,27 @@
 use std::net::TcpStream;
+use super::super::stream_wrapper::MinecraftStream;
+use super::packet_handler::IPacketHandler;
+use super::serverbound::ServerBoundPayload;
+use super::serverbound::ServerBoundPacket;
 
-use crate::cocoabeans::protocol::packet::serverbound::ServerBoundPacket;
-
-trait Decoder {
-    fn decode(&self, stream: &TcpStream) -> Option<ServerBoundPacket>;
+fn decode<P: ServerBoundPayload>(
+    packet_handler: &Option<dyn IPacketHandler>,
+    stream: &mut MinecraftStream,
+) -> Option<ServerBoundPacket> {
+    let length = stream.read_varint();
+    let id = stream.read_varint();
+    match packet_handler {
+        None => None,
+        Some(handler) => {
+            match handler
+                .protocol_version
+                .get_builder_from_id(&handler.connection_state, id as u8)
+            {
+                Some(builder) => Some(builder(stream, length)),
+                None => None,
+            }
+        }
+    }
 }
 
 // fn decode<P: ServerBoundPayload>(

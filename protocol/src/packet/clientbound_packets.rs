@@ -1,5 +1,5 @@
-use crate::cocoabeans::protocol::stream_wrapper::MinecraftStream;
-use crate::cocoabeans::protocol::versions::ProtocolVersion;
+use super::super::stream_wrapper::MinecraftStream;
+use super::versions::ProtocolVersion;
 
 pub trait ClientBoundPacket {
     fn write_to(&self, stream: &mut MinecraftStream, protocol_version: &dyn ProtocolVersion);
@@ -10,10 +10,10 @@ pub mod handshaking {
 }
 
 pub mod status {
-    use crate::cocoabeans::json_macros::Json;
-    use crate::cocoabeans::protocol::packet::clientbound_packets::ClientBoundPacket;
-    use crate::cocoabeans::protocol::stream_wrapper::MinecraftStream;
-    use crate::cocoabeans::protocol::versions::ProtocolVersion;
+    use cocoabeans::macros::json::Json;
+    use super::ClientBoundPacket;
+    use super::super::stream_wrapper::MinecraftStream;
+    use super::super::versions::ProtocolVersion;
 
     pub struct ResponsePacket {
         pub json_payload: Json,

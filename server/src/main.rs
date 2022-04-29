@@ -1,9 +1,9 @@
 extern crate core;
 
-mod cocoabeans;
+pub mod dedicated_server;
 
 fn main() {
-    let result = cocoabeans::server::dedicated_server::start();
+    let result = dedicated_server::start();
     match result {
         Ok(_) => {
             println!("Server stopped!");
