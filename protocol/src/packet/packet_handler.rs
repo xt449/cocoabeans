@@ -1,7 +1,7 @@
 use std::io::Read;
 use std::net::TcpStream;
 
-use crate::io3::MinecraftReader;
+use crate::io::MinecraftReader;
 use crate::packet::serverbound::*;
 use crate::versions;
 use crate::versions::ProtocolVersion;

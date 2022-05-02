@@ -1,38 +1,91 @@
-use std::io::{Read, Write};
-use std::net::TcpStream;
+use std::io::Read;
+
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use macros::json::Json;
 
-pub struct MinecraftReader<'t> {
-    stream: &'t mut MinecraftStream,
+pub struct MinecraftReader {
+    buf: Bytes,
 }
 
-pub struct MinecraftWriter<'t> {
-    stream: &'t mut MinecraftStream,
+pub struct MinecraftWriter {
+    buf: BytesMut,
 }
 
-pub struct MinecraftStream {
-    pub stream: TcpStream,
+pub struct MinecraftBuffer {
+    buf: BytesMut,
 }
 
 // Constructor
-impl<'t> MinecraftReader<'t> {
-    pub fn wrap(stream: &mut MinecraftStream) -> MinecraftReader {
-        return MinecraftReader { stream };
+impl MinecraftReader {
+    pub fn from(slice: &[u8]) -> MinecraftReader {
+        return MinecraftReader {
+            buf: Bytes::copy_from_slice(slice),
+        };
+    }
+
+    pub fn new() -> MinecraftReader {
+        return MinecraftReader { buf: Bytes::new() };
+    }
+
+    pub fn read_from(read: &mut dyn Read, size: usize) -> MinecraftReader {
+        let mut vec_backing = Vec::<u8>::with_capacity(size);
+        let slice: &mut [u8] = vec_backing.as_mut_slice();
+        read.read_exact(slice);
+        return MinecraftReader {
+            buf: Bytes::copy_from_slice(slice),
+        };
     }
 }
 
 // Constructor
-impl<'t> MinecraftWriter<'t> {
-    pub fn wrap(stream: &mut MinecraftStream) -> MinecraftWriter {
-        return MinecraftWriter { stream };
+impl MinecraftWriter {
+    pub fn from(slice: &[u8]) -> MinecraftWriter {
+        return MinecraftWriter {
+            buf: BytesMut::from(slice),
+        };
+    }
+
+    pub fn new() -> MinecraftWriter {
+        return MinecraftWriter {
+            buf: BytesMut::new(),
+        };
+    }
+
+    pub fn with_capacity(size: usize) -> MinecraftWriter {
+        return MinecraftWriter {
+            buf: BytesMut::with_capacity(size),
+        };
     }
 }
 
 // Constructor
-impl MinecraftStream {
-    pub fn wrap(stream: TcpStream) -> MinecraftStream {
-        return MinecraftStream { stream };
+impl MinecraftBuffer {
+    pub fn from(slice: &[u8]) -> MinecraftBuffer {
+        return MinecraftBuffer {
+            buf: BytesMut::from(slice),
+        };
+    }
+
+    pub fn new() -> MinecraftBuffer {
+        return MinecraftBuffer {
+            buf: BytesMut::new(),
+        };
+    }
+
+    pub fn with_capacity(size: usize) -> MinecraftBuffer {
+        return MinecraftBuffer {
+            buf: BytesMut::with_capacity(size),
+        };
+    }
+
+    pub fn copy_from(read: &mut dyn Read, size: usize) -> MinecraftBuffer {
+        let mut vec_backing = Vec::<u8>::with_capacity(size);
+        let slice: &mut [u8] = vec_backing.as_mut_slice();
+        read.read_exact(slice);
+        return MinecraftBuffer {
+            buf: BytesMut::from(&slice[..]),
+        };
     }
 }
 
@@ -40,142 +93,14 @@ const SEGMENT_BITS: u8 = 0x7F;
 const CONTINUE_BIT: u8 = 0x80;
 
 // Reader
-impl<'t> MinecraftReader<'t> {
-    pub fn read_varint(&mut self) -> i32 {
-        return self.stream.read_varint();
-    }
-    pub fn read_varlong(&mut self) -> i64 {
-        return self.stream.read_varlong();
-    }
-
-    pub fn read_boolean(&mut self) -> bool {
-        return self.stream.read_boolean();
+impl MinecraftReader {
+    // Take
+    pub fn take(self, length: usize) -> MinecraftReader {
+        return MinecraftReader {
+            buf: self.buf.take(length).into_inner(),
+        };
     }
 
-    pub fn read_byte(&mut self) -> i8 {
-        return self.stream.read_byte();
-    }
-
-    pub fn read_unsigned_byte(&mut self) -> u8 {
-        return self.stream.read_unsigned_byte();
-    }
-
-    pub fn read_short(&mut self) -> i16 {
-        return self.stream.read_short();
-    }
-
-    pub fn read_unsigned_short(&mut self) -> u16 {
-        return self.stream.read_unsigned_short();
-    }
-
-    pub fn read_int(&mut self) -> i32 {
-        return self.stream.read_int();
-    }
-
-    pub fn read_long(&mut self) -> i64 {
-        return self.stream.read_long();
-    }
-
-    pub fn read_float(&mut self) -> f32 {
-        return self.stream.read_float();
-    }
-
-    pub fn read_double(&mut self) -> f64 {
-        return self.stream.read_double();
-    }
-
-    pub fn read_utf(&mut self) -> String {
-        return self.stream.read_utf();
-    }
-
-    pub fn read_json(&mut self) -> Json {
-        return self.stream.read_json();
-    }
-
-    pub fn read_uuid(&mut self) -> u128 {
-        return self.stream.read_uuid();
-    }
-
-    pub fn read_byte_vec(&mut self, length: usize) -> Vec<u8> {
-        return self.stream.read_byte_vec(length);
-    }
-
-    // pub fn read_byte_slice(&mut self, length: usize) -> &[u8] {
-    //     return self.stream.read_byte_slice(length);
-    // }
-}
-
-// Writer
-impl<'t> MinecraftWriter<'t> {
-    // VarInt Special
-    pub fn write_varint(&mut self, value: i32) {
-        return self.stream.write_varint(value);
-    }
-
-    // VarLong Special
-    pub fn write_varlong(&mut self, value: i64) {
-        return self.stream.write_varlong(value);
-    }
-
-    pub fn write_boolean(&mut self, value: bool) {
-        return self.stream.write_boolean(value);
-    }
-
-    pub fn write_byte(&mut self, value: i8) {
-        return self.stream.write_byte(value);
-    }
-
-    pub fn write_unsigned_byte(&mut self, value: u8) {
-        return self.stream.write_unsigned_byte(value);
-    }
-
-    pub fn write_short(&mut self, value: i16) {
-        return self.stream.write_short(value);
-    }
-
-    pub fn write_unsigned_short(&mut self, value: u16) {
-        return self.stream.write_unsigned_short(value);
-    }
-
-    pub fn write_int(&mut self, value: i32) {
-        return self.stream.write_int(value);
-    }
-
-    pub fn write_long(&mut self, value: i64) {
-        return self.stream.write_long(value);
-    }
-
-    pub fn write_float(&mut self, value: f32) {
-        return self.stream.write_float(value);
-    }
-
-    pub fn write_double(&mut self, value: f64) {
-        return self.stream.write_double(value);
-    }
-
-    pub fn write_utf(&mut self, value: &String) {
-        return self.stream.write_utf(value);
-    }
-
-    pub fn write_json(&mut self, value: &Json) {
-        return self.stream.write_json(value);
-    }
-
-    pub fn write_uuid(&mut self, value: u128) {
-        return self.stream.write_uuid(value);
-    }
-
-    pub fn write_byte_vec(&mut self, value: &Vec<u8>) {
-        return self.stream.write_byte_vec(value);
-    }
-
-    pub fn write_byte_slice(&mut self, value: &[u8]) {
-        return self.stream.write_byte_slice(value);
-    }
-}
-
-// Readers
-impl MinecraftStream {
     // VarInt Special
     pub fn read_varint(&mut self) -> i32 {
         let mut value: i32 = 0;
@@ -221,64 +146,44 @@ impl MinecraftStream {
     }
 
     pub fn read_boolean(&mut self) -> bool {
-        let byte_in: u8 = 0u8;
-        self.stream.read_exact(&mut [byte_in]);
-        return byte_in != 0;
+        return self.buf.get_u8() != 0;
     }
 
     pub fn read_byte(&mut self) -> i8 {
-        let byte_in: u8 = 0u8;
-        self.stream.read_exact(&mut [byte_in]);
-        return byte_in as i8;
+        return self.buf.get_i8();
     }
 
     pub fn read_unsigned_byte(&mut self) -> u8 {
-        let byte_in: u8 = 0u8;
-        self.stream.read_exact(&mut [byte_in]);
-        return byte_in;
+        return self.buf.get_u8();
     }
 
     pub fn read_short(&mut self) -> i16 {
-        let mut bytes_in: [u8; 2] = [0u8, 0u8];
-        self.stream.read_exact(&mut bytes_in);
-        return i16::from_be_bytes(bytes_in);
+        return self.buf.get_i16();
     }
 
     pub fn read_unsigned_short(&mut self) -> u16 {
-        let mut bytes_in: [u8; 2] = [0u8, 0u8];
-        self.stream.read_exact(&mut bytes_in);
-        return u16::from_be_bytes(bytes_in);
+        return self.buf.get_u16();
     }
 
     pub fn read_int(&mut self) -> i32 {
-        let mut bytes_in: [u8; 4] = [0u8, 0u8, 0u8, 0u8];
-        self.stream.read_exact(&mut bytes_in);
-        return i32::from_be_bytes(bytes_in);
+        return self.buf.get_i32();
     }
 
     pub fn read_long(&mut self) -> i64 {
-        let mut bytes_in: [u8; 8] = [0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8];
-        self.stream.read_exact(&mut bytes_in);
-        return i64::from_be_bytes(bytes_in);
+        return self.buf.get_i64();
     }
 
     pub fn read_float(&mut self) -> f32 {
-        let mut bytes_in: [u8; 4] = [0u8, 0u8, 0u8, 0u8];
-        self.stream.read_exact(&mut bytes_in);
-        return f32::from_be_bytes(bytes_in);
+        return self.buf.get_f32();
     }
 
     pub fn read_double(&mut self) -> f64 {
-        let mut bytes_in: [u8; 8] = [0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8];
-        self.stream.read_exact(&mut bytes_in);
-        return f64::from_be_bytes(bytes_in);
+        return self.buf.get_f64();
     }
 
     pub fn read_utf(&mut self) -> String {
         let length: i32 = self.read_varint();
-        let mut bytes_in: Vec<u8> = Vec::with_capacity(length as usize);
-        self.stream.read_exact(&mut bytes_in);
-        return String::from_utf8(bytes_in).unwrap();
+        return String::from_utf8(self.buf.copy_to_bytes(length as usize).to_vec()).unwrap();
     }
 
     pub fn read_json(&mut self) -> Json {
@@ -289,26 +194,20 @@ impl MinecraftStream {
     }
 
     pub fn read_uuid(&mut self) -> u128 {
-        let mut bytes_in: [u8; 16] = [
-            0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8, 0u8,
-        ];
-        self.stream.read_exact(&mut bytes_in);
-        return u128::from_be_bytes(bytes_in);
+        return self.buf.get_u128();
     }
 
     pub fn read_byte_vec(&mut self, length: usize) -> Vec<u8> {
-        let mut bytes_in: Vec<u8> = Vec::with_capacity(length);
-        self.stream.read_exact(&mut bytes_in);
-        return bytes_in;
+        return self.buf.copy_to_bytes(length).to_vec();
     }
 
-    // pub fn read_byte_slice(&mut self, length: usize) -> &[u8] {
-    //     return &self.read_byte_vec(length)[..];
-    // }
+    pub fn read_bytes(&mut self, length: usize) -> Bytes {
+        return self.buf.copy_to_bytes(length);
+    }
 }
 
-// Writers
-impl MinecraftStream {
+// Writer
+impl MinecraftWriter {
     // VarInt Special
     pub fn write_varint(&mut self, mut value: i32) {
         loop {
@@ -338,43 +237,43 @@ impl MinecraftStream {
     }
 
     pub fn write_boolean(&mut self, value: bool) {
-        self.stream.write_all(&mut [value as u8]);
+        self.buf.put_u8(value as u8);
     }
 
     pub fn write_byte(&mut self, value: i8) {
-        self.stream.write_all(&mut [value as u8]);
+        self.buf.put_i8(value);
     }
 
     pub fn write_unsigned_byte(&mut self, value: u8) {
-        self.stream.write_all(&mut [value]);
+        self.buf.put_u8(value);
     }
 
     pub fn write_short(&mut self, value: i16) {
-        self.stream.write(&value.to_be_bytes());
+        self.buf.put_i16(value);
     }
 
     pub fn write_unsigned_short(&mut self, value: u16) {
-        self.stream.write(&value.to_be_bytes());
+        self.buf.put_u16(value);
     }
 
     pub fn write_int(&mut self, value: i32) {
-        self.stream.write(&value.to_be_bytes());
+        self.buf.put_i32(value);
     }
 
     pub fn write_long(&mut self, value: i64) {
-        self.stream.write(&value.to_be_bytes());
+        self.buf.put_i64(value);
     }
 
     pub fn write_float(&mut self, value: f32) {
-        self.stream.write(&value.to_be_bytes());
+        self.buf.put_f32(value);
     }
 
     pub fn write_double(&mut self, value: f64) {
-        self.stream.write(&value.to_be_bytes());
+        self.buf.put_f64(value);
     }
 
     pub fn write_utf(&mut self, value: &String) {
-        self.stream.write(value.as_bytes());
+        self.buf.put_slice(value.as_bytes());
     }
 
     pub fn write_json(&mut self, value: &Json) {
@@ -382,27 +281,18 @@ impl MinecraftStream {
     }
 
     pub fn write_uuid(&mut self, value: u128) {
-        self.stream.write(&value.to_be_bytes());
+        self.buf.put_u128(value);
     }
 
     pub fn write_byte_vec(&mut self, value: &Vec<u8>) {
-        self.stream.write_all(&value[..]);
+        self.buf.put_slice(value.as_slice());
+    }
+
+    pub fn write_bytes(&mut self, value: Bytes) {
+        self.buf.put_slice(value.chunk());
     }
 
     pub fn write_byte_slice(&mut self, value: &[u8]) {
-        self.stream.write_all(value);
-    }
-}
-
-// Restrictors
-impl MinecraftStream {
-    #[warn(unused_allocation)]
-    pub fn get_reader(&mut self) -> MinecraftReader {
-        return MinecraftReader::wrap(self);
-    }
-
-    #[warn(unused_allocation)]
-    pub fn get_writer(&mut self) -> MinecraftWriter {
-        return MinecraftWriter::wrap(self);
+        self.buf.put_slice(value);
     }
 }

@@ -1,4 +1,4 @@
-use crate::io3::MinecraftReader;
+use crate::io::MinecraftReader;
 use crate::packet::packet_handler::IPacketHandler;
 
 pub type ServerBoundPacketBuilder = fn(stream: &MinecraftReader) -> ServerBoundPacket;
@@ -13,7 +13,7 @@ pub mod handshaking {
     use crate::packet::packet_handler::{IPacketHandler, State};
     use crate::packet::serverbound::ServerBoundPayload;
 
-    // payloads
+// payloads
 
     pub struct HandshakePayload {
         pub protocol_version: i32,
@@ -35,7 +35,7 @@ pub mod status {
     use crate::packet::packet_handler::IPacketHandler;
     use crate::packet::serverbound::ServerBoundPayload;
 
-    // payloads
+// payloads
 
     pub struct RequestPayload {
         // no fields
@@ -62,7 +62,7 @@ pub mod login {
     use crate::packet::packet_handler::IPacketHandler;
     use crate::packet::serverbound::ServerBoundPayload;
 
-    // payloads
+// payloads
 
     pub struct StartPayload {
         username: String,
