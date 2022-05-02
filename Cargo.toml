@@ -2,10 +2,10 @@
 name = "cocoabeans"
 
 members = [
-	"server",
-	"protocol",
-	"macros",
-	"nbt",
-	"blocks",
-	"entities",
+    "server",
+    "protocol",
+    "nbt",
+    "macros",
+    "entities",
+    "blocks",
 ]

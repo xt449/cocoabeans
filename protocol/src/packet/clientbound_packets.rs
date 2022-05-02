@@ -1,8 +1,8 @@
-use super::super::stream_wrapper::MinecraftStream;
-use super::versions::ProtocolVersion;
+use crate::io::MinecraftWriter;
+use crate::versions::ProtocolVersion;
 
 pub trait ClientBoundPacket {
-    fn write_to(&self, stream: &mut MinecraftStream, protocol_version: &dyn ProtocolVersion);
+    fn write_to(&self, stream: MinecraftWriter, protocol_version: &dyn ProtocolVersion);
 }
 
 pub mod handshaking {
@@ -10,18 +10,19 @@ pub mod handshaking {
 }
 
 pub mod status {
-    use cocoabeans::macros::json::Json;
+    use macros::json::Json;
+
+    use crate::io::MinecraftWriter;
+    use crate::versions::ProtocolVersion;
+
     use super::ClientBoundPacket;
-    use super::super::stream_wrapper::MinecraftStream;
-    use super::super::versions::ProtocolVersion;
 
     pub struct ResponsePacket {
         pub json_payload: Json,
     }
 
     impl ClientBoundPacket for ResponsePacket {
-        #[allow(unused_must_use)]
-        fn write_to(&self, stream: &mut MinecraftStream, protocol_version: &dyn ProtocolVersion) {
+        fn write_to(&self, mut stream: MinecraftWriter, protocol_version: &dyn ProtocolVersion) {
             stream.write_unsigned_byte(protocol_version.get_status_response_id());
             stream.write_json(&self.json_payload);
         }
@@ -32,8 +33,7 @@ pub mod status {
     }
 
     impl ClientBoundPacket for PongPacket {
-        #[allow(unused_must_use)]
-        fn write_to(&self, stream: &mut MinecraftStream, protocol_version: &dyn ProtocolVersion) {
+        fn write_to(&self, mut stream: MinecraftWriter, protocol_version: &dyn ProtocolVersion) {
             stream.write_unsigned_byte(protocol_version.get_status_pong_id());
             stream.write_long(self.payload);
         }
@@ -41,18 +41,18 @@ pub mod status {
 }
 
 pub mod login {
-    use crate::cocoabeans::json_macros::Json;
-    use crate::cocoabeans::protocol::packet::clientbound_packets::ClientBoundPacket;
-    use crate::cocoabeans::protocol::stream_wrapper::MinecraftStream;
-    use crate::cocoabeans::protocol::versions::ProtocolVersion;
+    use macros::json::Json;
+
+    use crate::io::MinecraftWriter;
+    use crate::packet::clientbound_packets::ClientBoundPacket;
+    use crate::versions::ProtocolVersion;
 
     pub struct DisconnectPacket {
         pub json_chat: Json,
     }
 
     impl ClientBoundPacket for DisconnectPacket {
-        #[allow(unused_must_use)]
-        fn write_to(&self, stream: &mut MinecraftStream, protocol_version: &dyn ProtocolVersion) {
+        fn write_to(&self, mut stream: MinecraftWriter, protocol_version: &dyn ProtocolVersion) {
             stream.write_unsigned_byte(protocol_version.get_status_pong_id());
             stream.write_json(&self.json_chat);
         }
@@ -65,8 +65,7 @@ pub mod login {
     }
 
     impl ClientBoundPacket for EncryptionRequestPacket {
-        #[allow(unused_must_use)]
-        fn write_to(&self, stream: &mut MinecraftStream, protocol_version: &dyn ProtocolVersion) {
+        fn write_to(&self, mut stream: MinecraftWriter, protocol_version: &dyn ProtocolVersion) {
             stream.write_unsigned_byte(protocol_version.get_status_pong_id());
             stream.write_utf(&self.server_id);
             stream.write_byte_vec(&self.key);
@@ -80,8 +79,7 @@ pub mod login {
     }
 
     impl ClientBoundPacket for SuccessPacket {
-        #[allow(unused_must_use)]
-        fn write_to(&self, stream: &mut MinecraftStream, protocol_version: &dyn ProtocolVersion) {
+        fn write_to(&self, mut stream: MinecraftWriter, protocol_version: &dyn ProtocolVersion) {
             stream.write_unsigned_byte(protocol_version.get_status_pong_id());
             stream.write_uuid(self.uuid);
             stream.write_utf(&self.username);
@@ -93,8 +91,7 @@ pub mod login {
     }
 
     impl ClientBoundPacket for SetCompressionPacket {
-        #[allow(unused_must_use)]
-        fn write_to(&self, stream: &mut MinecraftStream, protocol_version: &dyn ProtocolVersion) {
+        fn write_to(&self, mut stream: MinecraftWriter, protocol_version: &dyn ProtocolVersion) {
             stream.write_unsigned_byte(protocol_version.get_status_pong_id());
             stream.write_varint(self.compression_threshold);
         }
@@ -107,8 +104,7 @@ pub mod login {
     }
 
     impl ClientBoundPacket for PluginRequestPacket {
-        #[allow(unused_must_use)]
-        fn write_to(&self, stream: &mut MinecraftStream, protocol_version: &dyn ProtocolVersion) {
+        fn write_to(&self, mut stream: MinecraftWriter, protocol_version: &dyn ProtocolVersion) {
             stream.write_unsigned_byte(protocol_version.get_status_pong_id());
             stream.write_int(self.message_id);
             stream.write_utf(&self.identifier);

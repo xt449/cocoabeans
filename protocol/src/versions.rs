@@ -1,5 +1,5 @@
-use crate::cocoabeans::protocol::packet::serverbound::ServerBoundPacketBuilder;
-use crate::cocoabeans::protocol::ConnectionState;
+use crate::packet::packet_handler::State;
+use crate::packet::serverbound::ServerBoundPacketBuilder;
 
 pub trait ProtocolVersion {
     // Handshaking - none
@@ -20,7 +20,7 @@ pub trait ProtocolVersion {
     // Incoming
     fn get_builder_from_id(
         &self,
-        connection_state: &ConnectionState,
+        connection_state: &State,
         packet_id: u8,
     ) -> Option<ServerBoundPacketBuilder>;
 }
@@ -65,29 +65,29 @@ impl ProtocolVersion for V758 {
     // Incoming
     fn get_builder_from_id(
         &self,
-        connection_state: &ConnectionState,
+        connection_state: &State,
         packet_id: u8,
     ) -> Option<ServerBoundPacketBuilder> {
         return match connection_state {
-            ConnectionState::HANDSHAKING => match packet_id {
+            State::HANDSHAKING => match packet_id {
                 _ => {
                     todo!();
                     None
                 }
             },
-            ConnectionState::STATUS => match packet_id {
+            State::STATUS => match packet_id {
                 _ => {
                     todo!();
                     None
                 }
             },
-            ConnectionState::LOGIN => match packet_id {
+            State::LOGIN => match packet_id {
                 _ => {
                     todo!();
                     None
                 }
             },
-            ConnectionState::PLAY => match packet_id {
+            State::PLAY => match packet_id {
                 _ => {
                     todo!();
                     None

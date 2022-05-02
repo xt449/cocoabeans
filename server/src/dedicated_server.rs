@@ -1,10 +1,13 @@
 use std::error::Error;
 use std::net::{SocketAddr, TcpListener, TcpStream};
 
-use crate::cocoabeans::protocol::client_connection::ClientConnectionHandler;
+use protocol::connection::Connection;
 
-fn handle_connection(connection: (TcpStream, SocketAddr)) {
-    ClientConnectionHandler::start(connection);
+fn handle_connection(connection_raw: (TcpStream, SocketAddr)) {
+    let mut connection = Connection::new(connection_raw.1, connection_raw.0);
+    loop {
+        connection.next();
+    }
 }
 
 pub fn start() -> Result<(), Box<dyn Error>> {

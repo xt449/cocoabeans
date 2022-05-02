@@ -1,4 +1,4 @@
-use crate::cocoabeans::protocol::versions::*;
+use crate::versions::{ProtocolVersion, V758};
 
 // TODO - make rust happy
 /*const MANAGER: std::collections::HashMap<i32, &'static dyn ProtocolVersion> = get_default_map();

@@ -1,7 +1,7 @@
-use crate::cocoabeans::protocol::packet::packet_handler::IPacketHandler;
-use crate::cocoabeans::protocol::stream_wrapper::MinecraftStream;
+use crate::io::MinecraftReader;
+use crate::packet::packet_handler::IPacketHandler;
 
-pub type ServerBoundPacketBuilder = fn(stream: &MinecraftStream, length: i32) -> ServerBoundPacket;
+pub type ServerBoundPacketBuilder = fn(stream: MinecraftReader) -> ServerBoundPacket;
 
 pub type ServerBoundPacket = Box<dyn ServerBoundPayload>;
 
@@ -10,9 +10,8 @@ pub trait ServerBoundPayload {
 }
 
 pub mod handshaking {
-    use crate::cocoabeans::protocol::packet::packet_handler::IPacketHandler;
-    use crate::cocoabeans::protocol::packet::serverbound::ServerBoundPayload;
-    use crate::cocoabeans::protocol::ConnectionState;
+    use crate::packet::packet_handler::{IPacketHandler, State};
+    use crate::packet::serverbound::ServerBoundPayload;
 
     // payloads
 
@@ -20,7 +19,7 @@ pub mod handshaking {
         pub protocol_version: i32,
         pub address: String,
         pub port: u16,
-        pub next_state: ConnectionState,
+        pub next_state: State,
     }
 
     impl ServerBoundPayload for HandshakePayload {
@@ -33,8 +32,8 @@ pub mod handshaking {
 }
 
 pub mod status {
-    use crate::cocoabeans::protocol::packet::packet_handler::IPacketHandler;
-    use crate::cocoabeans::protocol::packet::serverbound::ServerBoundPayload;
+    use crate::packet::packet_handler::IPacketHandler;
+    use crate::packet::serverbound::ServerBoundPayload;
 
     // payloads
 
@@ -60,8 +59,8 @@ pub mod status {
 }
 
 pub mod login {
-    use crate::cocoabeans::protocol::packet::packet_handler::IPacketHandler;
-    use crate::cocoabeans::protocol::packet::serverbound::ServerBoundPayload;
+    use crate::packet::packet_handler::IPacketHandler;
+    use crate::packet::serverbound::ServerBoundPayload;
 
     // payloads
 
