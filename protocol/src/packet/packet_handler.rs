@@ -1,11 +1,11 @@
 use std::io::Read;
 use std::net::TcpStream;
 
+use crate::io3::MinecraftReader;
 use crate::packet::serverbound::*;
-use crate::{io3, read_helper, version_manager};
-use crate::io3::{MinecraftBuffer, MinecraftReader};
 use crate::versions;
 use crate::versions::ProtocolVersion;
+use crate::{read_helper, version_manager};
 
 pub enum State {
     HANDSHAKING = 0,
@@ -57,44 +57,42 @@ impl PacketHandler {
         let slice: &mut [u8] = vec_backing.as_mut_slice();
         let read_result = self.stream.read(slice);
         match read_result {
-            Ok(_) => {/*continue*/}
-            Err(_) => {return None;}
+            Ok(_) => { /*continue*/ }
+            Err(_) => {
+                return None;
+            }
         }
 
         return match self.encryption {
-            None => PacketHandler::decode_packet(&self.state, self.protocol_version, MinecraftReader::wrap(&slice)),
-            Some(cipher) => PacketHandler::decode_packet(&self.state, self.protocol_version,PacketHandler::decrypt_packet(cipher, &slice)),
+            None => PacketHandler::decode_packet(
+                &self.state,
+                self.protocol_version,
+                MinecraftReader::from(&slice),
+            ),
+            Some(cipher) => PacketHandler::decode_packet(
+                &self.state,
+                self.protocol_version,
+                PacketHandler::decrypt_packet(cipher, &slice),
+            ),
         };
     }
 
     fn decrypt_packet(cipher: u64, mut slice: &[u8]) -> MinecraftReader {
         // TODO
-        return MinecraftReader::wrap(slice);
+        return MinecraftReader::from(slice);
     }
 
-    fn decode_packet(state: &State, protocol_version: &dyn ProtocolVersion, mut reader: MinecraftReader) -> Option<ServerBoundPacket> {
+    fn decode_packet(
+        state: &State,
+        protocol_version: &dyn ProtocolVersion,
+        mut reader: MinecraftReader,
+    ) -> Option<ServerBoundPacket> {
         let id = reader.read_varint();
         return match protocol_version.get_builder_from_id(state, id as u8) {
             None => None,
             Some(builder) => Some(builder(&reader)),
         };
     }
-}
-
-// Packet read Pipeline start
-impl PacketHandler {
-    // pub fn read_packet(&mut self) -> Option<ServerBoundPacket> {
-    //     return match self.encryption {
-    //         None => {
-    //             PacketHandler::decode_packet(self.protocol_version, &self.state, &self.stream.reader)
-    //         }
-    //         Some(_) => PacketHandler::decode_packet(
-    //             self.protocol_version,
-    //             &self.state,
-    //             PacketHandler::decrypt_packet(&mut self.stream),
-    //         ),
-    //     };
-    // }
 }
 
 impl IPacketHandler for PacketHandler {

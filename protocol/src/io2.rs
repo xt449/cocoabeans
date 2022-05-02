@@ -26,7 +26,7 @@ impl MinecraftReader {
 // Constructor
 impl MinecraftWriter {
     pub fn wrap(write: Box<dyn Write>) -> MinecraftWriter {
-        return MinecraftWriter {  write };
+        return MinecraftWriter { write };
     }
 }
 
@@ -34,8 +34,12 @@ impl MinecraftWriter {
 impl MinecraftStream {
     pub fn wrap(stream: &'static TcpStream) -> MinecraftStream {
         return MinecraftStream {
-            reader: MinecraftReader { read: Box::new(stream) },
-            writer: MinecraftWriter { write: Box::new(stream) },
+            reader: MinecraftReader {
+                read: Box::new(stream),
+            },
+            writer: MinecraftWriter {
+                write: Box::new(stream),
+            },
         };
     }
     pub fn wrap_twins(read: Box<dyn Read>, write: Box<dyn Write>) -> MinecraftStream {
@@ -53,7 +57,9 @@ const CONTINUE_BIT: u8 = 0x80;
 impl MinecraftReader {
     // Take
     pub fn take(self, length: u64) -> MinecraftReader {
-        return MinecraftReader { read: Box::new(self.read.take(length)) };
+        return MinecraftReader {
+            read: Box::new(self.read.take(length)),
+        };
     }
 
     // VarInt Special

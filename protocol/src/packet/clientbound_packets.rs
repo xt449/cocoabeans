@@ -1,4 +1,4 @@
-use crate::io::MinecraftWriter;
+use crate::io3::MinecraftWriter;
 use crate::versions::ProtocolVersion;
 
 pub trait ClientBoundPacket {
@@ -12,7 +12,7 @@ pub mod handshaking {
 pub mod status {
     use macros::json::Json;
 
-    use crate::io::MinecraftWriter;
+    use crate::io3::MinecraftWriter;
     use crate::versions::ProtocolVersion;
 
     use super::ClientBoundPacket;
@@ -43,7 +43,7 @@ pub mod status {
 pub mod login {
     use macros::json::Json;
 
-    use crate::io::MinecraftWriter;
+    use crate::io3::MinecraftWriter;
     use crate::packet::clientbound_packets::ClientBoundPacket;
     use crate::versions::ProtocolVersion;
 

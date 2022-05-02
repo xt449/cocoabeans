@@ -1,6 +1,5 @@
-use std::borrow::Borrow;
-use std::io::{Read};
-use std::ops::Deref;
+use std::io::Read;
+
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use macros::json::Json;
@@ -19,44 +18,74 @@ pub struct MinecraftBuffer {
 
 // Constructor
 impl MinecraftReader {
-    pub fn wrap(slice: &[u8]) -> MinecraftReader {
-        return MinecraftReader { buf: Bytes::copy_from_slice(slice) };
+    pub fn from(slice: &[u8]) -> MinecraftReader {
+        return MinecraftReader {
+            buf: Bytes::copy_from_slice(slice),
+        };
+    }
+
+    pub fn new() -> MinecraftReader {
+        return MinecraftReader { buf: Bytes::new() };
     }
 
     pub fn read_from(read: &mut dyn Read, size: usize) -> MinecraftReader {
         let mut vec_backing = Vec::<u8>::with_capacity(size);
         let slice: &mut [u8] = vec_backing.as_mut_slice();
         read.read_exact(slice);
-        return MinecraftReader { buf: Bytes::copy_from_slice(slice) };
+        return MinecraftReader {
+            buf: Bytes::copy_from_slice(slice),
+        };
     }
 }
 
 // Constructor
 impl MinecraftWriter {
-    pub fn wrap(slice: &[u8]) -> MinecraftWriter {
-        return MinecraftWriter { buf: BytesMut::from(slice) };
+    pub fn from(slice: &[u8]) -> MinecraftWriter {
+        return MinecraftWriter {
+            buf: BytesMut::from(slice),
+        };
     }
 
-    pub fn new(size: usize) -> MinecraftWriter {
-        return MinecraftWriter { buf: BytesMut::with_capacity(size) };
+    pub fn new() -> MinecraftWriter {
+        return MinecraftWriter {
+            buf: BytesMut::new(),
+        };
+    }
+
+    pub fn with_capacity(size: usize) -> MinecraftWriter {
+        return MinecraftWriter {
+            buf: BytesMut::with_capacity(size),
+        };
     }
 }
 
 // Constructor
 impl MinecraftBuffer {
-    pub fn wrap(slice: &[u8]) -> MinecraftBuffer {
-        return MinecraftBuffer { buf: BytesMut::from(slice) };
+    pub fn from(slice: &[u8]) -> MinecraftBuffer {
+        return MinecraftBuffer {
+            buf: BytesMut::from(slice),
+        };
     }
 
-    pub fn new(size: usize) -> MinecraftBuffer {
-        return MinecraftBuffer { buf: BytesMut::with_capacity(size) };
+    pub fn new() -> MinecraftBuffer {
+        return MinecraftBuffer {
+            buf: BytesMut::new(),
+        };
+    }
+
+    pub fn with_capacity(size: usize) -> MinecraftBuffer {
+        return MinecraftBuffer {
+            buf: BytesMut::with_capacity(size),
+        };
     }
 
     pub fn copy_from(read: &mut dyn Read, size: usize) -> MinecraftBuffer {
         let mut vec_backing = Vec::<u8>::with_capacity(size);
         let slice: &mut [u8] = vec_backing.as_mut_slice();
         read.read_exact(slice);
-        return MinecraftBuffer { buf: BytesMut::from(&slice[..]) };
+        return MinecraftBuffer {
+            buf: BytesMut::from(&slice[..]),
+        };
     }
 }
 
@@ -67,7 +96,9 @@ const CONTINUE_BIT: u8 = 0x80;
 impl MinecraftReader {
     // Take
     pub fn take(self, length: usize) -> MinecraftReader {
-        return MinecraftReader { buf: self.buf.take(length).into_inner() };
+        return MinecraftReader {
+            buf: self.buf.take(length).into_inner(),
+        };
     }
 
     // VarInt Special
