@@ -1,6 +1,7 @@
+use std::io::{Read};
 use std::net::TcpStream;
 
-use crate::io::MinecraftStream;
+use crate::io2::{MinecraftReader, MinecraftStream};
 use crate::packet::serverbound::*;
 use crate::version_manager;
 use crate::versions;
@@ -38,7 +39,7 @@ pub struct PacketHandler {
 impl PacketHandler {
     pub fn new(stream: TcpStream) -> PacketHandler {
         return PacketHandler {
-            stream: MinecraftStream::wrap(stream),
+            stream: MinecraftStream::wrap(&stream),
             state: State::HANDSHAKING,
             protocol_version: &versions::V758 {},
             compression: false,
@@ -47,15 +48,23 @@ impl PacketHandler {
     }
 }
 
+// Packet Splitter
+impl PacketHandler {
+    pub fn read(&mut self) -> Vec<ServerBoundPacket> {
+        let packets = Vec::new();
+
+        let length = self.stream.reader.read_varint();
+
+        self.stream.reader.take(length as u64)
+    }
+}
+
 // Packet read Pipeline start
 impl PacketHandler {
     pub fn read_packet(&mut self) -> Option<ServerBoundPacket> {
-        // TODO unused length data
-        let length = self.stream.get_reader().read_varint();
-
         return match self.encryption {
             None => {
-                PacketHandler::decode_packet(self.protocol_version, &self.state, &mut self.stream)
+                PacketHandler::decode_packet(self.protocol_version, &self.state, &self.stream.reader)
             }
             Some(_) => PacketHandler::decode_packet(
                 self.protocol_version,
@@ -68,7 +77,9 @@ impl PacketHandler {
 
 // Packet Decrypter
 impl PacketHandler {
-    fn decrypt_packet(stream: &mut MinecraftStream) -> &mut MinecraftStream {
+    // use new ByteBuf as return type on MinecraftStream::take
+    // use that for input and result of all packet handler methods
+    fn decrypt_packet(stream: &mut MinecraftReader) -> &mut MinecraftStream {
         // TODO
         return stream;
     }
@@ -79,12 +90,12 @@ impl PacketHandler {
     fn decode_packet(
         protocol_version: &dyn ProtocolVersion,
         state: &State,
-        stream: &mut MinecraftStream,
+        mut reader: &MinecraftReader,
     ) -> Option<ServerBoundPacket> {
-        let id = stream.get_reader().read_varint();
+        let id = reader.read_varint();
         return match protocol_version.get_builder_from_id(state, id as u8) {
             None => None,
-            Some(builder) => Some(builder(stream.get_reader())),
+            Some(builder) => Some(builder(reader)),
         };
     }
 }

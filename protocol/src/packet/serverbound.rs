@@ -1,7 +1,7 @@
-use crate::io::MinecraftReader;
+use crate::io2::MinecraftReader;
 use crate::packet::packet_handler::IPacketHandler;
 
-pub type ServerBoundPacketBuilder = fn(stream: MinecraftReader) -> ServerBoundPacket;
+pub type ServerBoundPacketBuilder = fn(stream: &MinecraftReader) -> ServerBoundPacket;
 
 pub type ServerBoundPacket = Box<dyn ServerBoundPayload>;
 

@@ -15,18 +15,21 @@ pub struct MinecraftStream {
     pub stream: TcpStream,
 }
 
+// Constructor
 impl<'t> MinecraftReader<'t> {
     pub fn wrap(stream: &mut MinecraftStream) -> MinecraftReader {
         return MinecraftReader { stream };
     }
 }
 
+// Constructor
 impl<'t> MinecraftWriter<'t> {
     pub fn wrap(stream: &mut MinecraftStream) -> MinecraftWriter {
         return MinecraftWriter { stream };
     }
 }
 
+// Constructor
 impl MinecraftStream {
     pub fn wrap(stream: TcpStream) -> MinecraftStream {
         return MinecraftStream { stream };
@@ -393,10 +396,12 @@ impl MinecraftStream {
 
 // Restrictors
 impl MinecraftStream {
+    #[warn(unused_allocation)]
     pub fn get_reader(&mut self) -> MinecraftReader {
         return MinecraftReader::wrap(self);
     }
 
+    #[warn(unused_allocation)]
     pub fn get_writer(&mut self) -> MinecraftWriter {
         return MinecraftWriter::wrap(self);
     }
