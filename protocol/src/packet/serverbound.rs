@@ -1,4 +1,4 @@
-use crate::io2::MinecraftReader;
+use crate::io3::MinecraftReader;
 use crate::packet::packet_handler::IPacketHandler;
 
 pub type ServerBoundPacketBuilder = fn(stream: &MinecraftReader) -> ServerBoundPacket;

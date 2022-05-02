@@ -1,9 +1,9 @@
-use std::io::{Read};
+use std::io::Read;
 use std::net::TcpStream;
 
-use crate::io2::{MinecraftReader, MinecraftStream};
 use crate::packet::serverbound::*;
-use crate::version_manager;
+use crate::{io3, read_helper, version_manager};
+use crate::io3::{MinecraftBuffer, MinecraftReader};
 use crate::versions;
 use crate::versions::ProtocolVersion;
 
@@ -28,7 +28,7 @@ pub trait IPacketHandler {
 }
 
 pub struct PacketHandler {
-    pub stream: MinecraftStream,
+    pub stream: TcpStream,
     pub state: State,
     pub protocol_version: &'static dyn ProtocolVersion,
     pub compression: bool,
@@ -39,7 +39,7 @@ pub struct PacketHandler {
 impl PacketHandler {
     pub fn new(stream: TcpStream) -> PacketHandler {
         return PacketHandler {
-            stream: MinecraftStream::wrap(&stream),
+            stream: stream,
             state: State::HANDSHAKING,
             protocol_version: &versions::V758 {},
             compression: false,
@@ -48,56 +48,53 @@ impl PacketHandler {
     }
 }
 
-// Packet Splitter
+// Packet stuff
 impl PacketHandler {
-    pub fn read(&mut self) -> Vec<ServerBoundPacket> {
-        let packets = Vec::new();
+    pub fn read(&mut self) -> Option<ServerBoundPacket> {
+        let length = read_helper::read_varint(&mut self.stream);
 
-        let length = self.stream.reader.read_varint();
+        let mut vec_backing = Vec::<u8>::with_capacity(length as usize);
+        let slice: &mut [u8] = vec_backing.as_mut_slice();
+        let read_result = self.stream.read(slice);
+        match read_result {
+            Ok(_) => {/*continue*/}
+            Err(_) => {return None;}
+        }
 
-        self.stream.reader.take(length as u64)
+        return match self.encryption {
+            None => PacketHandler::decode_packet(&self.state, self.protocol_version, MinecraftReader::wrap(&slice)),
+            Some(cipher) => PacketHandler::decode_packet(&self.state, self.protocol_version,PacketHandler::decrypt_packet(cipher, &slice)),
+        };
+    }
+
+    fn decrypt_packet(cipher: u64, mut slice: &[u8]) -> MinecraftReader {
+        // TODO
+        return MinecraftReader::wrap(slice);
+    }
+
+    fn decode_packet(state: &State, protocol_version: &dyn ProtocolVersion, mut reader: MinecraftReader) -> Option<ServerBoundPacket> {
+        let id = reader.read_varint();
+        return match protocol_version.get_builder_from_id(state, id as u8) {
+            None => None,
+            Some(builder) => Some(builder(&reader)),
+        };
     }
 }
 
 // Packet read Pipeline start
 impl PacketHandler {
-    pub fn read_packet(&mut self) -> Option<ServerBoundPacket> {
-        return match self.encryption {
-            None => {
-                PacketHandler::decode_packet(self.protocol_version, &self.state, &self.stream.reader)
-            }
-            Some(_) => PacketHandler::decode_packet(
-                self.protocol_version,
-                &self.state,
-                PacketHandler::decrypt_packet(&mut self.stream),
-            ),
-        };
-    }
-}
-
-// Packet Decrypter
-impl PacketHandler {
-    // use new ByteBuf as return type on MinecraftStream::take
-    // use that for input and result of all packet handler methods
-    fn decrypt_packet(stream: &mut MinecraftReader) -> &mut MinecraftStream {
-        // TODO
-        return stream;
-    }
-}
-
-// Packet Decoder
-impl PacketHandler {
-    fn decode_packet(
-        protocol_version: &dyn ProtocolVersion,
-        state: &State,
-        mut reader: &MinecraftReader,
-    ) -> Option<ServerBoundPacket> {
-        let id = reader.read_varint();
-        return match protocol_version.get_builder_from_id(state, id as u8) {
-            None => None,
-            Some(builder) => Some(builder(reader)),
-        };
-    }
+    // pub fn read_packet(&mut self) -> Option<ServerBoundPacket> {
+    //     return match self.encryption {
+    //         None => {
+    //             PacketHandler::decode_packet(self.protocol_version, &self.state, &self.stream.reader)
+    //         }
+    //         Some(_) => PacketHandler::decode_packet(
+    //             self.protocol_version,
+    //             &self.state,
+    //             PacketHandler::decrypt_packet(&mut self.stream),
+    //         ),
+    //     };
+    // }
 }
 
 impl IPacketHandler for PacketHandler {
