@@ -1,3 +1,3 @@
-mod world;
-mod chunk;
-mod coordinate_utils;
+pub mod world;
+pub mod chunk;
+pub mod coordinate_utils;

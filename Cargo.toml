@@ -5,6 +5,7 @@ members = [
     "blocks",
     "entities",
     "macros",
+    "math",
     "nbt",
     "protocol",
     "server",
