@@ -1,1 +1,1 @@
-pub enum HeightProviderTypeRegistry { r#biased_to_bottom = 2, r#constant = 0, r#trapezoid = 4, r#uniform = 1, r#very_biased_to_bottom = 3, r#weighted_list = 5, } impl crate::Registry for HeightProviderType { fn get_protocol_id() -> u32 { return 37; } }
+pub enum HeightProviderTypeRegistry { r#biased_to_bottom = 2, r#constant = 0, r#trapezoid = 4, r#uniform = 1, r#very_biased_to_bottom = 3, r#weighted_list = 5, } impl crate::Registry for HeightProviderTypeRegistry { fn get_protocol_id() -> u32 { return 37; } }

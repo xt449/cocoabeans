@@ -1,1 +1,1 @@
-pub enum IntProviderTypeRegistry { r#biased_to_bottom = 2, r#clamped = 3, r#clamped_normal = 5, r#constant = 0, r#uniform = 1, r#weighted_list = 4, } impl crate::Registry for IntProviderType { fn get_protocol_id() -> u32 { return 36; } }
+pub enum IntProviderTypeRegistry { r#biased_to_bottom = 2, r#clamped = 3, r#clamped_normal = 5, r#constant = 0, r#uniform = 1, r#weighted_list = 4, } impl crate::Registry for IntProviderTypeRegistry { fn get_protocol_id() -> u32 { return 36; } }

@@ -1,1 +1,1 @@
-pub enum WorldgenBiomeSourceRegistry { r#checkerboard = 2, r#fixed = 0, r#multi_noise = 1, r#the_end = 3, } impl crate::Registry for WorldgenBiomeSource { fn get_protocol_id() -> u32 { return 50; } }
+pub enum WorldgenBiomeSourceRegistry { r#checkerboard = 2, r#fixed = 0, r#multi_noise = 1, r#the_end = 3, } impl crate::Registry for WorldgenBiomeSourceRegistry { fn get_protocol_id() -> u32 { return 50; } }
