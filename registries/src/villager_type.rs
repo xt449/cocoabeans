@@ -1,0 +1,1 @@
+pub enum VillagerTypeRegistry { r#desert = 0, r#jungle = 1, r#plains = 2, r#savanna = 3, r#snow = 4, r#swamp = 5, r#taiga = 6, } impl crate::Registry for VillagerType { fn get_protocol_id() -> u32 { return 22; } } impl Default for VillagerType {fn default() -> Self { return VillagerType::minecraft:plains; } }

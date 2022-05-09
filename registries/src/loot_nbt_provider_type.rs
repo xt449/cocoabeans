@@ -1,0 +1,1 @@
+pub enum LootNbtProviderTypeRegistry { r#context = 1, r#storage = 0, } impl crate::Registry for LootNbtProviderType { fn get_protocol_id() -> u32 { return 33; } }

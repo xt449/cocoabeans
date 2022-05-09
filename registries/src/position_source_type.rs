@@ -1,0 +1,1 @@
+pub enum PositionSourceTypeRegistry { r#block = 0, r#entity = 1, } impl crate::Registry for PositionSourceType { fn get_protocol_id() -> u32 { return 20; } }
