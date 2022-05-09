@@ -1,0 +1,2 @@
+#![allow(non_camel_case_types, unused)]
+#[derive(Copy, Clone)] pub enum WorldgenMaterialRuleRegistry { r#bandlands = 0, r#block = 1, r#condition = 3, r#sequence = 2, } impl crate::registries::Registry for WorldgenMaterialRuleRegistry { fn get_protocol_id() -> u32 { return 53; } }

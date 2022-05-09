@@ -1,1 +1,0 @@
-pub enum LootPoolEntryTypeRegistry { r#alternatives = 5, r#dynamic = 3, r#empty = 0, r#group = 7, r#item = 1, r#loot_table = 2, r#sequence = 6, r#tag = 4, } impl crate::Registry for LootPoolEntryTypeRegistry { fn get_protocol_id() -> u32 { return 29; } }

@@ -1,1 +1,0 @@
-pub enum WorldgenCarverRegistry { r#canyon = 2, r#cave = 0, r#nether_cave = 1, } impl crate::Registry for WorldgenCarverRegistry { fn get_protocol_id() -> u32 { return 39; } }

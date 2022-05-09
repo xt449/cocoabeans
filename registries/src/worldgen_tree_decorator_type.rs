@@ -1,1 +1,0 @@
-pub enum WorldgenTreeDecoratorTypeRegistry { r#alter_ground = 4, r#beehive = 3, r#cocoa = 2, r#leave_vine = 1, r#trunk_vine = 0, } impl crate::Registry for WorldgenTreeDecoratorTypeRegistry { fn get_protocol_id() -> u32 { return 48; } }

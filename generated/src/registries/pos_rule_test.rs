@@ -1,0 +1,2 @@
+#![allow(non_camel_case_types, unused)]
+#[derive(Copy, Clone)] pub enum PosRuleTestRegistry { r#always_true = 0, r#axis_aligned_linear_pos = 2, r#linear_pos = 1, } impl crate::registries::Registry for PosRuleTestRegistry { fn get_protocol_id() -> u32 { return 15; } }

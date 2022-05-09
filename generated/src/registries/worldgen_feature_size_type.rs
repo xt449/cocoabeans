@@ -1,0 +1,2 @@
+#![allow(non_camel_case_types, unused)]
+#[derive(Copy, Clone)] pub enum WorldgenFeatureSizeTypeRegistry { r#three_layers_feature_size = 1, r#two_layers_feature_size = 0, } impl crate::registries::Registry for WorldgenFeatureSizeTypeRegistry { fn get_protocol_id() -> u32 { return 49; } }

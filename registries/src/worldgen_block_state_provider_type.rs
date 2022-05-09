@@ -1,1 +1,0 @@
-pub enum WorldgenBlockStateProviderTypeRegistry { r#dual_noise_provider = 4, r#noise_provider = 3, r#noise_threshold_provider = 2, r#randomized_int_state_provider = 6, r#rotated_block_provider = 5, r#simple_state_provider = 0, r#weighted_state_provider = 1, } impl crate::Registry for WorldgenBlockStateProviderTypeRegistry { fn get_protocol_id() -> u32 { return 45; } }

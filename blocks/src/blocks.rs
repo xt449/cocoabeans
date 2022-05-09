@@ -1,3 +1,5 @@
+// TODO replace with `generated::blocks::*`
+
 pub struct AIR {}
 pub struct STONE {}
 pub struct GRANITE {}

@@ -1,1 +1,0 @@
-pub enum ActivityRegistry { r#admire_item = 12, r#avoid = 13, r#celebrate = 11, r#core = 0, r#fight = 10, r#hide = 9, r#idle = 1, r#long_jump = 16, r#meet = 5, r#panic = 6, r#play = 3, r#play_dead = 15, r#pre_raid = 8, r#raid = 7, r#ram = 17, r#rest = 4, r#ride = 14, r#work = 2, } impl crate::Registry for ActivityRegistry { fn get_protocol_id() -> u32 { return 28; } }

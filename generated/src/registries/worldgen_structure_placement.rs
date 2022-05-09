@@ -1,0 +1,2 @@
+#![allow(non_camel_case_types, unused)]
+#[derive(Copy, Clone)] pub enum WorldgenStructurePlacementRegistry { r#concentric_rings = 1, r#random_spread = 0, } impl crate::registries::Registry for WorldgenStructurePlacementRegistry { fn get_protocol_id() -> u32 { return 42; } }

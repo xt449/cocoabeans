@@ -1,0 +1,2 @@
+#![allow(non_camel_case_types, unused)]
+#[derive(Copy, Clone)] pub enum WorldgenCarverRegistry { r#canyon = 2, r#cave = 0, r#nether_cave = 1, } impl crate::registries::Registry for WorldgenCarverRegistry { fn get_protocol_id() -> u32 { return 39; } }

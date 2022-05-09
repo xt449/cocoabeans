@@ -1,1 +1,0 @@
-pub enum LootScoreProviderTypeRegistry { r#context = 1, r#fixed = 0, } impl crate::Registry for LootScoreProviderTypeRegistry { fn get_protocol_id() -> u32 { return 34; } }
