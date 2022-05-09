@@ -1,2 +1,0 @@
-#![allow(non_camel_case_types, unused)]
-#[derive(Copy, Clone)] pub enum PositionSourceTypeRegistry { r#block = 0, r#entity = 1, } impl crate::registries::Registry for PositionSourceTypeRegistry { fn get_protocol_id() -> u32 { return 20; } }

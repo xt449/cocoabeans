@@ -1,2 +1,0 @@
-#![allow(non_camel_case_types, unused)]
-#[derive(Copy, Clone)] pub enum VillagerTypeRegistry { r#desert = 0, r#jungle = 1, r#plains = 2, r#savanna = 3, r#snow = 4, r#swamp = 5, r#taiga = 6, } impl crate::registries::Registry for VillagerTypeRegistry { fn get_protocol_id() -> u32 { return 22; } } impl Default for VillagerTypeRegistry {fn default() -> Self { return VillagerTypeRegistry::r#plains; } }

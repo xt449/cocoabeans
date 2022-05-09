@@ -1,2 +1,0 @@
-#![allow(non_camel_case_types, unused)]
-#[derive(Copy, Clone)] pub enum ChunkStatusRegistry { r#biomes = 3, r#carvers = 6, r#empty = 0, r#features = 8, r#full = 12, r#heightmaps = 11, r#light = 9, r#liquid_carvers = 7, r#noise = 4, r#spawn = 10, r#structure_references = 2, r#structure_starts = 1, r#surface = 5, } impl crate::registries::Registry for ChunkStatusRegistry { fn get_protocol_id() -> u32 { return 13; } } impl Default for ChunkStatusRegistry {fn default() -> Self { return ChunkStatusRegistry::r#empty; } }

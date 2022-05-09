@@ -1,2 +1,0 @@
-#![allow(non_camel_case_types, unused)]
-#[derive(Copy, Clone)] pub enum ScheduleRegistry { r#empty = 0, r#simple = 1, r#villager_baby = 2, r#villager_default = 3, } impl crate::registries::Registry for ScheduleRegistry { fn get_protocol_id() -> u32 { return 27; } }

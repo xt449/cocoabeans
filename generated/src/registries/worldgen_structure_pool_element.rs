@@ -1,2 +1,0 @@
-#![allow(non_camel_case_types, unused)]
-#[derive(Copy, Clone)] pub enum WorldgenStructurePoolElementRegistry { r#empty_pool_element = 3, r#feature_pool_element = 2, r#legacy_single_pool_element = 4, r#list_pool_element = 1, r#single_pool_element = 0, } impl crate::registries::Registry for WorldgenStructurePoolElementRegistry { fn get_protocol_id() -> u32 { return 56; } }

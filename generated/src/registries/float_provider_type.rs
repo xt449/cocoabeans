@@ -1,2 +1,0 @@
-#![allow(non_camel_case_types, unused)]
-#[derive(Copy, Clone)] pub enum FloatProviderTypeRegistry { r#clamped_normal = 2, r#constant = 0, r#trapezoid = 3, r#uniform = 1, } impl crate::registries::Registry for FloatProviderTypeRegistry { fn get_protocol_id() -> u32 { return 35; } }
