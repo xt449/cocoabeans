@@ -1,4 +1,4 @@
-use crate::state::BlockState;
+use generated::blocks::BlockState;
 use math::coordinate::Position;
 
 // TODO - unnecessary wrapper?
