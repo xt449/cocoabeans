@@ -1,6 +1,4 @@
-extern crate core;
-
-mod dedicated_server;
+use server::dedicated_server;
 
 fn main() {
     let result = dedicated_server::start();
