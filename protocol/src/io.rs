@@ -1,8 +1,14 @@
 use std::io::Read;
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
+use serde::Serialize;
 
 use macros::json::Json;
+use nbt::lib::Blob;
+use crate::data::entity_metadata::EntityMetadata;
+use crate::data::identifier::Identifier;
+use crate::data::item_stack::ItemStack;
+use crate::data::position::Position;
 
 pub struct MinecraftReader {
     buf: Bytes,
@@ -31,7 +37,7 @@ impl MinecraftReader {
     pub fn read_from(read: &mut dyn Read, size: usize) -> MinecraftReader {
         let mut vec_backing = Vec::<u8>::with_capacity(size);
         let slice: &mut [u8] = vec_backing.as_mut_slice();
-        read.read_exact(slice);
+        read.read_exact(slice).expect("MinecraftReader::read_from");
         return MinecraftReader {
             buf: Bytes::copy_from_slice(slice),
         };
@@ -82,7 +88,7 @@ impl MinecraftBuffer {
     pub fn copy_from(read: &mut dyn Read, size: usize) -> MinecraftBuffer {
         let mut vec_backing = Vec::<u8>::with_capacity(size);
         let slice: &mut [u8] = vec_backing.as_mut_slice();
-        read.read_exact(slice);
+        read.read_exact(slice).expect("MinecraftBuffer::copy_from");
         return MinecraftBuffer {
             buf: BytesMut::from(&slice[..]),
         };
@@ -276,7 +282,7 @@ impl MinecraftWriter {
         self.buf.put_slice(value.as_bytes());
     }
 
-    pub fn write_json(&mut self, value: &Json) {
+    pub fn write_json<T: Serialize>(&mut self, value: &T) {
         self.write_utf(&serde_json::to_string(&value).unwrap());
     }
 
@@ -294,5 +300,37 @@ impl MinecraftWriter {
 
     pub fn write_byte_slice(&mut self, value: &[u8]) {
         self.buf.put_slice(value);
+    }
+
+    // pub fn write_chat_component(&mut self, value: &ChatComponent) {
+    //     self.buf.put_slice(serde_json::to_string(value).unwrap().as_bytes());
+    // }
+
+    pub fn write_identifier(&mut self, value: &Identifier) {
+        self.write_utf(&value.to_string());
+    }
+
+    pub fn write_entity_metadata(&mut self, value: &EntityMetadata) {
+        // TODO
+    }
+
+    pub fn write_item_stack(&mut self, value: &ItemStack) {
+        self.write_boolean(value.count > 0);
+        if value.count > 0 {
+            self.write_varint(value.id.unwrap() as usize as i32);
+            self.write_unsigned_byte(value.count);
+            self.write_nbt(value.get_nbt());
+        }
+    }
+
+    pub fn write_nbt(&mut self, value: &Option<Blob>) {
+        match value {
+            None => self.write_unsigned_byte(0),
+            Some(value) => self.write_json(value),
+        }
+    }
+
+    pub fn write_position(&mut self, value: &Position) {
+        self.write_long((((value.x & 0x3FFFFFF) as i64) << 38) | (((value.z & 0x3FFFFFF) as i64) << 12) | (value.y & 0xFFF) as i64);
     }
 }
