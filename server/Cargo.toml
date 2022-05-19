@@ -13,7 +13,6 @@ edition = "2021"
 #mio = "0.8.2"
 #prost = "0.10.1"
 #rand = "0.8.5"
-blocks = { path = "../blocks" }
 entities = { path = "../entities" }
 nbt = { path = "../nbt" }
 protocol = { path = "../protocol" }

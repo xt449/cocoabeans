@@ -1,5 +1,5 @@
-use generated::registries::villager_type::VillagerTypeRegistry;
-use generated::registries::villager_profession::VillagerProfessionRegistry;
+use registries::villager_type::VillagerTypeRegistry;
+use registries::villager_profession::VillagerProfessionRegistry;
 
 pub struct VillagerData {
     r#type: VillagerTypeRegistry,

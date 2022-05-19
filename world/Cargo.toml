@@ -6,3 +6,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+blocks = { path = "../../cocoabeans-generators/out/blocks" }
+registries = { path = "../../cocoabeans-generators/out/registries" }

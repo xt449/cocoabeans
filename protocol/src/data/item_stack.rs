@@ -1,4 +1,4 @@
-use generated::registries::item::ItemRegistry;
+use registries::item::ItemRegistry;
 use nbt::lib::Blob;
 
 pub struct ItemStack {

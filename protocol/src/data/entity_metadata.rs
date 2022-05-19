@@ -2,7 +2,7 @@ use crate::data::chat::ChatComponent;
 use crate::data::item_stack::ItemStack;
 use crate::data::position::Position;
 use crate::data::direction::Direction;
-use generated::blocks::BlockState;
+use blocks::BlockState;
 use nbt::lib::Blob;
 use crate::data::particle::Particle;
 use crate::data::villager_data::VillagerData;

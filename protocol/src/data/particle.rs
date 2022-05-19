@@ -1,5 +1,5 @@
-use generated::registries::particle_type::ParticleTypeRegistry;
-use generated::blocks::BlockState;
+use registries::particle_type::ParticleTypeRegistry;
+use blocks::BlockState;
 use crate::data::item_stack::ItemStack;
 use crate::data::position::Position;
 
