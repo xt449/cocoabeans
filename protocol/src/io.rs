@@ -10,6 +10,14 @@ use crate::data::identifier::Identifier;
 use crate::data::item_stack::ItemStack;
 use crate::data::position::Position;
 
+pub trait MinecraftReadable {
+    fn deserialize(reader: &MinecraftReader) -> Self;
+}
+
+pub trait MinecraftWritableable {
+    fn serialize(&self, writer: &MinecraftWriter);
+}
+
 pub struct MinecraftReader {
     buf: Bytes,
 }
@@ -210,6 +218,11 @@ impl MinecraftReader {
     pub fn read_bytes(&mut self, length: usize) -> Bytes {
         return self.buf.copy_to_bytes(length);
     }
+
+    // TODO - Woah! OOP
+    pub fn read<T: MinecraftReadable>(&mut self) -> T {
+        return T::deserialize(self);
+    }
 }
 
 // Writer
@@ -305,6 +318,11 @@ impl MinecraftWriter {
     // pub fn write_chat_component(&mut self, value: &ChatComponent) {
     //     self.buf.put_slice(serde_json::to_string(value).unwrap().as_bytes());
     // }
+
+    // TODO - Woah! OOP
+    pub fn write<T: MinecraftWritableable>(&mut self, value: T) {
+        value.serialize(self);
+    }
 
     pub fn write_identifier(&mut self, value: &Identifier) {
         self.write_utf(&value.to_string());
