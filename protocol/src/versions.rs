@@ -18,7 +18,7 @@ pub trait ProtocolVersion {
     // Play - TODO
 
     // Incoming
-    fn get_builder_from_id(
+    fn get_packet_builder_from_id(
         &self,
         connection_state: &State,
         packet_id: u8,
@@ -63,7 +63,7 @@ impl ProtocolVersion for V758 {
     // Play - TODO
 
     // Incoming
-    fn get_builder_from_id(
+    fn get_packet_builder_from_id(
         &self,
         connection_state: &State,
         packet_id: u8,

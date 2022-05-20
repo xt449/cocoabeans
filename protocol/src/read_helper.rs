@@ -25,7 +25,7 @@ pub fn read_varint(read: &mut dyn Read) -> i32 {
 }
 
 pub fn read_unsigned_byte(read: &mut dyn Read) -> u8 {
-    let byte_in: u8 = 0u8;
-    read.read_exact(&mut [byte_in]);
-    return byte_in;
+    let byte_in: &mut [u8] = &mut [0];
+    read.read_exact(byte_in).unwrap();
+    return byte_in[0];
 }

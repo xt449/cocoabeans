@@ -3,8 +3,8 @@ use std::net::{SocketAddr, TcpListener, TcpStream};
 
 use protocol::connection::Connection;
 
-fn handle_connection(connection_raw: (TcpStream, SocketAddr)) {
-    let mut connection = Connection::new(connection_raw.1, connection_raw.0);
+fn handle_connection(address: SocketAddr, stream: TcpStream) {
+    let mut connection = Connection::new(address, stream);
     loop {
         connection.next();
     }
@@ -19,8 +19,8 @@ pub fn start() -> Result<(), Box<dyn Error>> {
 
     loop {
         match server.accept() {
-            Ok(connection) => {
-                std::thread::spawn(move || handle_connection(connection));
+            Ok((stream, address)) => {
+                std::thread::spawn(move || handle_connection(address, stream));
             }
             Err(e) => {
                 println!("Error accepting incoming connection: {}", e);

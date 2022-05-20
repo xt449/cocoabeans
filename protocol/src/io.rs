@@ -111,6 +111,11 @@ impl MinecraftReader {
         };
     }
 
+    // TODO
+    pub fn remaining(&self) -> usize {
+        return self.buf.remaining();
+    }
+
     // VarInt Special
     pub fn read_varint(&mut self) -> i32 {
         let mut value: i32 = 0;
@@ -351,7 +356,7 @@ impl Write for MinecraftWriter {
 
 impl MinecraftReadable<Value> for Value {
     fn deserialize_from(reader: &mut MinecraftReader) -> Result<Value, ()> {
-        if let Ok(value) = Value::from_reader(/*hard coded compound id*/0x0a, reader) {
+        if let Ok(value) = Value::from_reader(/*hard coded compound id*/ 0x0a, reader) {
             return Ok(value);
         }
         return Err(());

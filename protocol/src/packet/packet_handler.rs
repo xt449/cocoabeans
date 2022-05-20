@@ -52,34 +52,37 @@ impl PacketHandler {
 impl PacketHandler {
     pub fn read(&mut self) -> Option<ServerBoundPacket> {
         let length = read_helper::read_varint(&mut self.stream);
+        if length == 0 {
+            return None;
+        }
 
-        let mut vec_backing = Vec::<u8>::with_capacity(length as usize);
-        let slice: &mut [u8] = vec_backing.as_mut_slice();
-        let read_result = self.stream.read(slice);
-        match read_result {
-            Ok(_) => { /*continue*/ }
-            Err(_) => {
-                return None;
-            }
+        let mut vec = Vec::<u8>::with_capacity(length as usize);
+        let read_result = self
+            .stream
+            .by_ref()
+            .take(length as u64)
+            .read_to_end(&mut vec);
+        if let Err(_) = read_result {
+            return None;
         }
 
         return match self.encryption {
             None => PacketHandler::decode_packet(
                 &self.state,
                 self.protocol_version,
-                MinecraftReader::from(&slice),
+                MinecraftReader::from(vec.as_slice()),
             ),
             Some(cipher) => PacketHandler::decode_packet(
                 &self.state,
                 self.protocol_version,
-                PacketHandler::decrypt_packet(cipher, &slice),
+                PacketHandler::decrypt_packet(cipher, vec),
             ),
         };
     }
 
-    fn decrypt_packet(cipher: u64, mut slice: &[u8]) -> MinecraftReader {
+    fn decrypt_packet(cipher: u64, vec: Vec<u8>) -> MinecraftReader {
         // TODO
-        return MinecraftReader::from(slice);
+        return MinecraftReader::from(vec.as_slice());
     }
 
     fn decode_packet(
@@ -87,8 +90,9 @@ impl PacketHandler {
         protocol_version: &dyn ProtocolVersion,
         mut reader: MinecraftReader,
     ) -> Option<ServerBoundPacket> {
+        println!("reader buffer {}", reader.remaining());
         let id = reader.read_varint();
-        return match protocol_version.get_builder_from_id(state, id as u8) {
+        return match protocol_version.get_packet_builder_from_id(state, id as u8) {
             None => None,
             Some(builder) => Some(builder(&reader)),
         };
@@ -99,14 +103,10 @@ impl IPacketHandler for PacketHandler {
     // Handshaking
 
     fn handle_handshaking_handshake(&mut self, payload: &handshaking::HandshakePayload) {
-        match version_manager::get_protocol_version(payload.protocol_version) {
-            None => {}
-            Some(version) => {
-                self.protocol_version = version;
-            }
+        if let Some(version) = version_manager::get_protocol_version(payload.protocol_version) {
+            self.protocol_version = version;
         }
-        // TODO - do something smart
-        println!("{}", payload.address);
+        todo!()
     }
 
     // Status
