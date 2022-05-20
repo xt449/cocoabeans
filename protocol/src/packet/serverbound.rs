@@ -43,7 +43,7 @@ pub mod handshaking {
 
 pub mod status {
     use crate::packet::packet_handler::IPacketHandler;
-    use crate::packet::serverbound::ServerBoundPayload;
+    use crate::packet::serverbound::{ServerBoundPacketBuilder, ServerBoundPayload};
 
     // payloads
 
@@ -57,14 +57,28 @@ pub mod status {
         }
     }
 
+    impl RequestPayload {
+        pub const BUILDER: ServerBoundPacketBuilder = |mut reader| {
+            Some(Box::new(Self {}))
+        };
+    }
+
     pub struct PingPayload {
-        payload: i64,
+        pub payload: i64,
     }
 
     impl ServerBoundPayload for PingPayload {
         fn handle(&self, listener: &mut dyn IPacketHandler) {
             listener.handle_status_ping(self);
         }
+    }
+
+    impl PingPayload {
+        pub const BUILDER: ServerBoundPacketBuilder = |mut reader| {
+            Some(Box::new(Self {
+                payload: reader.read_long(),
+            }))
+        };
     }
 }
 

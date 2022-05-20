@@ -39,14 +39,14 @@ pub trait IPacketHandler {
     );
     // Status
     fn handle_status_request(&mut self, payload: &serverbound::status::RequestPayload);
-    fn handle_status_ping(&self, payload: &serverbound::status::PingPayload);
+    fn handle_status_ping(&mut self, payload: &serverbound::status::PingPayload);
     // Login
-    fn handle_login_start(&self, payload: &serverbound::login::StartPayload);
+    fn handle_login_start(&mut self, payload: &serverbound::login::StartPayload);
     fn handle_login_encryption_response(
-        &self,
+        &mut self,
         payload: &serverbound::login::EncryptionResponsePayload,
     );
-    fn handle_login_plugin_response(&self, payload: &serverbound::login::PluginResponsePayload);
+    fn handle_login_plugin_response(&mut self, payload: &serverbound::login::PluginResponsePayload);
     // Play - TODO
 }
 
@@ -165,27 +165,31 @@ impl IPacketHandler for PacketHandler {
         }
         .write_to(&mut buffer, self.protocol_version);
         self.stream.write_all(buffer.to_array()).unwrap();
-        todo!()
     }
 
-    fn handle_status_ping(&self, payload: &serverbound::status::PingPayload) {
-        todo!()
+    fn handle_status_ping(&mut self, payload: &serverbound::status::PingPayload) {
+        let mut buffer = MinecraftWriter::new();
+        clientbound::status::PongPacket {
+            payload: payload.payload,
+        }
+        .write_to(&mut buffer, self.protocol_version);
+        self.stream.write_all(buffer.to_array()).unwrap();
     }
 
     // Login
 
-    fn handle_login_start(&self, payload: &serverbound::login::StartPayload) {
+    fn handle_login_start(&mut self, payload: &serverbound::login::StartPayload) {
         todo!()
     }
 
     fn handle_login_encryption_response(
-        &self,
+        &mut self,
         payload: &serverbound::login::EncryptionResponsePayload,
     ) {
         todo!()
     }
 
-    fn handle_login_plugin_response(&self, payload: &serverbound::login::PluginResponsePayload) {
+    fn handle_login_plugin_response(&mut self, payload: &serverbound::login::PluginResponsePayload) {
         todo!()
     }
 

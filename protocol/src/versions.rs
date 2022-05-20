@@ -81,10 +81,9 @@ impl ProtocolVersion for V758 {
                 _ => None,
             },
             State::STATUS => match packet_id {
-                _ => {
-                    todo!();
-                    None
-                }
+                0 => Some(serverbound::status::RequestPayload::BUILDER),
+                1 => Some(serverbound::status::PingPayload::BUILDER),
+                _ => None,
             },
             State::LOGIN => match packet_id {
                 _ => {
