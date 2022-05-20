@@ -43,6 +43,7 @@ pub mod status {
 pub mod login {
     use macros::json::Json;
 
+    use crate::data::identifier::Identifier;
     use crate::io::MinecraftWriter;
     use crate::packet::clientbound_packets::ClientBoundPacket;
     use crate::versions::ProtocolVersion;
@@ -99,7 +100,7 @@ pub mod login {
 
     pub struct PluginRequestPacket {
         pub message_id: i32,
-        pub identifier: String,
+        pub identifier: Identifier,
         pub data: Vec<u8>,
     }
 
@@ -107,7 +108,7 @@ pub mod login {
         fn write_to(&self, mut stream: MinecraftWriter, protocol_version: &dyn ProtocolVersion) {
             stream.write_unsigned_byte(protocol_version.get_status_pong_id());
             stream.write_int(self.message_id);
-            stream.write_utf(&self.identifier);
+            stream.write(&self.identifier);
             stream.write_byte_vec(&self.data);
         }
     }

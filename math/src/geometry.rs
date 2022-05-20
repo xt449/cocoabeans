@@ -14,7 +14,7 @@ pub struct BoundingBox {
 
 // Constructors
 impl BoundingBox {
-    fn new_corners(x1: i64, y1: i64, z1: i64, x2: i64, y2: i64, z2: i64,) -> Self {
+    fn new_corners(x1: i64, y1: i64, z1: i64, x2: i64, y2: i64, z2: i64) -> Self {
         let x = min_max(x1, x2);
         let y = min_max(y1, y2);
         let z = min_max(z1, z2);
@@ -30,14 +30,7 @@ impl BoundingBox {
     }
 
     fn new_corner_positions(pos1: &Position, pos2: &Position) -> Self {
-        return BoundingBox::new_corners(
-            pos1.x,
-            pos1.y,
-            pos1.z,
-            pos2.x,
-            pos2.y,
-            pos2.z,
-        );
+        return BoundingBox::new_corners(pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z);
     }
 }
 
@@ -50,11 +43,11 @@ pub struct BoundingBox2 {
     pub x2: i64,
     pub y2: i64,
     pub z2: i64,
-    hidden: bool
+    hidden: bool,
 }
 
 impl BoundingBox2 {
-    fn new_corners(x1: i64, y1: i64, z1: i64, x2: i64, y2: i64, z2: i64,) -> Self {
+    fn new_corners(x1: i64, y1: i64, z1: i64, x2: i64, y2: i64, z2: i64) -> Self {
         let x = min_max(x1, x2);
         let y = min_max(y1, y2);
         let z = min_max(z1, z2);
@@ -66,19 +59,12 @@ impl BoundingBox2 {
             x2: x.1,
             y2: y.1,
             z2: z.1,
-            hidden: false
+            hidden: false,
         };
     }
 
     fn new_corner_positions(pos1: &Position, pos2: &Position) -> Self {
-        return BoundingBox2::new_corners(
-            pos1.x,
-            pos1.y,
-            pos1.z,
-            pos2.x,
-            pos2.y,
-            pos2.z,
-        );
+        return BoundingBox2::new_corners(pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z);
     }
 }
 

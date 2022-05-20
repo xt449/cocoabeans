@@ -1,3 +1,4 @@
+#[derive(Copy, Clone)]
 pub enum Pose {
     Standing = 0,
     FallFlying = 1,

@@ -1,4 +1,5 @@
 use serde::{Serialize, Serializer};
+
 use macros::json::Json;
 
 pub enum Color {
@@ -19,11 +20,14 @@ pub enum Color {
     Yellow,
     White,
     Reset,
-    Hex([u8; 3])
+    Hex([u8; 3]),
 }
 
 impl Serialize for Color {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
         return match self {
             Self::Black => serializer.serialize_str("black"),
             Self::DarkBlue => serializer.serialize_str("dark_blue"),
@@ -42,7 +46,9 @@ impl Serialize for Color {
             Self::Yellow => serializer.serialize_str("yellow"),
             Self::White => serializer.serialize_str("white"),
             Self::Reset => serializer.serialize_str("reset"),
-            Self::Hex(hex) => serializer.serialize_str(&format!("#{:02X}{:02X}{:02X}", hex[0], hex[1], hex[2])),
+            Self::Hex(hex) => {
+                serializer.serialize_str(&format!("#{:02X}{:02X}{:02X}", hex[0], hex[1], hex[2]))
+            }
         };
     }
 }
@@ -57,7 +63,10 @@ pub enum ClickAction {
 }
 
 impl Serialize for ClickAction {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
         return match self {
             Self::OpenUrl => serializer.serialize_str("open_url"),
             Self::OpenFile => serializer.serialize_str("open_file"),
@@ -82,7 +91,10 @@ pub enum HoverAction {
 }
 
 impl Serialize for HoverAction {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
         return match self {
             Self::ShowText => serializer.serialize_str("show_text"),
             Self::ShowItem => serializer.serialize_str("show_item"),
@@ -122,7 +134,7 @@ pub struct HoverEvent {
 pub struct TextChatComponent {
     // Content
     text: String,
-    
+
     // Format
     color: Option<Color>,
     //font: Option<Font>,
@@ -131,14 +143,14 @@ pub struct TextChatComponent {
     underlined: Option<bool>,
     strikethrough: Option<bool>,
     obfuscated: Option<bool>,
-    
+
     // Interaction
     insertion: Option<String>,
     clickEvent: Option<ClickEvent>,
     hoverEvent: Option<HoverEvent>,
 
     // Children
-    extra: Option<Vec<ChatComponent>>
+    extra: Option<Vec<ChatComponent>>,
 }
 
 #[derive(Serialize)]
@@ -161,7 +173,7 @@ pub struct KeybindChatComponent {
     hoverEvent: Option<HoverEvent>,
 
     // Children
-    extra: Option<Vec<ChatComponent>>
+    extra: Option<Vec<ChatComponent>>,
 }
 
 // Generalized
@@ -175,7 +187,10 @@ pub enum ChatComponent {
 }
 
 impl Serialize for ChatComponent {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error> where S: Serializer {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
         return match self {
             ChatComponent::Text(component) => component.serialize(serializer),
             ChatComponent::Keybind(component) => component.serialize(serializer),

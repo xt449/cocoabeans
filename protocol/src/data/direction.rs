@@ -1,3 +1,4 @@
+#[derive(Copy, Clone)]
 pub enum Direction {
     Down = 0,
     Up = 1,

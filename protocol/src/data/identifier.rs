@@ -1,30 +1,51 @@
 use std::fmt::{Display, Formatter};
 
-pub struct Identifier<'a> {
-    namespace: Option<&'a str>,
-    key: &'a str
+use crate::io::{MinecraftReadable, MinecraftReader, MinecraftWritable, MinecraftWriter};
+
+pub struct Identifier {
+    namespace: String,
+    key: String,
 }
 
-impl<'a> Identifier<'a> {
-    pub fn new_minecraft(key: &'a str) -> Self {
+impl Identifier {
+    pub fn new_minecraft(key: &str) -> Self {
         return Identifier {
-            namespace: None,
-            key: key,
+            namespace: "minecraft".to_owned(),
+            key: key.to_owned(),
         };
     }
-    pub fn new_other(namespace: &'a str, key: &'a str) -> Self {
+    pub fn new_other(namespace: &str, key: &str) -> Self {
         return Identifier {
-            namespace: Some(namespace),
-            key: key,
+            namespace: namespace.to_owned(),
+            key: key.to_owned(),
         };
+    }
+    pub fn from_format(identifier: String) -> Result<Self, ()> {
+        let split = identifier.split(':').collect::<Vec<&str>>();
+        if split.len() == 2 {
+            return Ok(Identifier {
+                namespace: split[0].to_owned(),
+                key: split[1].to_owned(),
+            });
+        }
+        return Err(());
     }
 }
 
-impl<'a> Display for Identifier<'a> {
+impl Display for Identifier {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        return f.write_fmt(format_args!("{}:{}", match self.namespace {
-            None => {"minecraft"}
-            Some(namespace) => {namespace}
-        }, self.key));
+        return f.write_fmt(format_args!("{}:{}", self.namespace, self.key));
+    }
+}
+
+impl MinecraftReadable<Self> for Identifier {
+    fn deserialize_from(reader: &mut MinecraftReader) -> Result<Self, ()> {
+        return Self::from_format(reader.read_utf());
+    }
+}
+
+impl MinecraftWritable for Identifier {
+    fn serialize_to(&self, writer: &mut MinecraftWriter) {
+        writer.write_utf(&self.to_string());
     }
 }

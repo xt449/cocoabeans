@@ -1,21 +1,17 @@
-use std::io::Read;
+use std::io::{Read, Write};
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
+use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use macros::json::Json;
-use nbt::lib::Blob;
-use crate::data::entity_metadata::EntityMetadata;
-use crate::data::identifier::Identifier;
-use crate::data::item_stack::ItemStack;
-use crate::data::position::Position;
+use nbt::lib::Value;
 
-pub trait MinecraftReadable {
-    fn deserialize(reader: &MinecraftReader) -> Self;
+pub trait MinecraftReadable<T> {
+    fn deserialize_from(reader: &mut MinecraftReader) -> Result<T, ()>;
 }
 
-pub trait MinecraftWritableable {
-    fn serialize(&self, writer: &MinecraftWriter);
+pub trait MinecraftWritable {
+    fn serialize_to(&self, writer: &mut MinecraftWriter);
 }
 
 pub struct MinecraftReader {
@@ -200,11 +196,8 @@ impl MinecraftReader {
         return String::from_utf8(self.buf.copy_to_bytes(length as usize).to_vec()).unwrap();
     }
 
-    pub fn read_json(&mut self) -> Json {
-        return match serde_json::from_str::<Json>(&self.read_utf()) {
-            Ok(json) => json,
-            Err(_) => Json::new(),
-        };
+    pub fn read_json<T: DeserializeOwned>(&mut self) -> T {
+        return serde_json::from_str::<T>(self.read_utf().as_str()).unwrap();
     }
 
     pub fn read_uuid(&mut self) -> u128 {
@@ -220,8 +213,15 @@ impl MinecraftReader {
     }
 
     // TODO - Woah! OOP
-    pub fn read<T: MinecraftReadable>(&mut self) -> T {
-        return T::deserialize(self);
+    pub fn read<T: MinecraftReadable<T>>(&mut self) -> Result<T, ()> {
+        return T::deserialize_from(self);
+    }
+}
+
+impl Read for MinecraftReader {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        self.buf.copy_to_slice(buf);
+        return Ok(buf.len());
     }
 }
 
@@ -291,7 +291,7 @@ impl MinecraftWriter {
         self.buf.put_f64(value);
     }
 
-    pub fn write_utf(&mut self, value: &String) {
+    pub fn write_utf(&mut self, value: &str) {
         self.buf.put_slice(value.as_bytes());
     }
 
@@ -320,35 +320,46 @@ impl MinecraftWriter {
     // }
 
     // TODO - Woah! OOP
-    pub fn write<T: MinecraftWritableable>(&mut self, value: T) {
-        value.serialize(self);
+    pub fn write<T: MinecraftWritable>(&mut self, value: &T) {
+        value.serialize_to(self);
     }
 
-    pub fn write_identifier(&mut self, value: &Identifier) {
-        self.write_utf(&value.to_string());
-    }
-
-    pub fn write_entity_metadata(&mut self, value: &EntityMetadata) {
-        // TODO
-    }
-
-    pub fn write_item_stack(&mut self, value: &ItemStack) {
-        self.write_boolean(value.count > 0);
-        if value.count > 0 {
-            self.write_varint(value.id.unwrap() as usize as i32);
-            self.write_unsigned_byte(value.count);
-            self.write_nbt(value.get_nbt());
-        }
-    }
-
-    pub fn write_nbt(&mut self, value: &Option<Blob>) {
+    // TODO - Woah! OOP
+    pub fn write_option<T: MinecraftWritable>(&mut self, value: &Option<T>) {
         match value {
             None => self.write_unsigned_byte(0),
-            Some(value) => self.write_json(value),
+            Some(value) => {
+                self.write_unsigned_byte(1);
+                value.serialize_to(self);
+            }
         }
     }
+}
 
-    pub fn write_position(&mut self, value: &Position) {
-        self.write_long((((value.x & 0x3FFFFFF) as i64) << 38) | (((value.z & 0x3FFFFFF) as i64) << 12) | (value.y & 0xFFF) as i64);
+impl Write for MinecraftWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.buf.put_slice(buf);
+        return Ok(buf.len());
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        return Ok(());
+    }
+}
+
+// Readable/Writable extras
+
+impl MinecraftReadable<Value> for Value {
+    fn deserialize_from(reader: &mut MinecraftReader) -> Result<Value, ()> {
+        if let Ok(value) = Value::from_reader(0x0a, reader) {
+            return Ok(value);
+        }
+        return Err(());
+    }
+}
+
+impl MinecraftWritable for Value {
+    fn serialize_to(&self, writer: &mut MinecraftWriter) {
+        self.to_writer(writer).unwrap();
     }
 }
