@@ -351,7 +351,7 @@ impl Write for MinecraftWriter {
 
 impl MinecraftReadable<Value> for Value {
     fn deserialize_from(reader: &mut MinecraftReader) -> Result<Value, ()> {
-        if let Ok(value) = Value::from_reader(0x0a, reader) {
+        if let Ok(value) = Value::from_reader(/*hard coded compound id*/0x0a, reader) {
             return Ok(value);
         }
         return Err(());
