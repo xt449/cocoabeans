@@ -145,8 +145,8 @@ pub struct TextChatComponent {
 
     // Interaction
     insertion: Option<String>,
-    clickEvent: Option<ClickEvent>,
-    hoverEvent: Option<HoverEvent>,
+    click_event: Option<ClickEvent>,
+    hover_event: Option<HoverEvent>,
 
     // Children
     extra: Option<Vec<ChatComponent>>,
@@ -168,8 +168,8 @@ pub struct KeybindChatComponent {
 
     // Interaction
     insertion: Option<String>,
-    clickEvent: Option<ClickEvent>,
-    hoverEvent: Option<HoverEvent>,
+    click_event: Option<ClickEvent>,
+    hover_event: Option<HoverEvent>,
 
     // Children
     extra: Option<Vec<ChatComponent>>,

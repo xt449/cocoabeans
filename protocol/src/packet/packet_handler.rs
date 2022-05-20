@@ -210,7 +210,8 @@ impl IPacketHandler for PacketHandler {
                     "online": 3
                 },
                 "description": {
-                    "text": "Hello world"
+                    "text": "Hello world",
+                    "color": "aqua"
                 }
             }),
         });
