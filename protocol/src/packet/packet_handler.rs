@@ -110,7 +110,7 @@ impl PacketHandler {
         state: &State,
         protocol_version: &'a dyn ProtocolVersion,
         mut reader: MinecraftReader,
-    ) -> Option<Box<dyn serverbound::ServerBoundPayload>> {
+    ) -> Option<serverbound::ServerBoundPacket> {
         println!("reader buffer {}", reader.remaining());
         let id = reader.read_varint();
         return match protocol_version.get_packet_builder_from_id(state, id as u8) {

@@ -1,7 +1,7 @@
 use crate::io::MinecraftReader;
 use crate::packet::packet_handler::IPacketHandler;
 
-pub type ServerBoundPacketBuilder<'a> = fn(reader: MinecraftReader) -> Option<ServerBoundPacket>;
+pub type ServerBoundPacketBuilder = fn(reader: MinecraftReader) -> Option<ServerBoundPacket>;
 
 pub type ServerBoundPacket = Box<dyn ServerBoundPayload>;
 
@@ -10,9 +10,8 @@ pub trait ServerBoundPayload {
 }
 
 pub mod handshaking {
-    use crate::io::MinecraftReader;
     use crate::packet::packet_handler::{IPacketHandler, State};
-    use crate::packet::serverbound::{ServerBoundPacket, ServerBoundPayload};
+    use crate::packet::serverbound::{ServerBoundPacketBuilder, ServerBoundPayload};
     use extensions::OptionFrom;
 
     // payloads
@@ -31,14 +30,14 @@ pub mod handshaking {
     }
 
     impl HandshakePayload {
-        pub fn builder(mut reader: MinecraftReader) -> Option<ServerBoundPacket> {
-            return Some(Box::new(Self {
+        pub const BUILDER: ServerBoundPacketBuilder = |mut reader| {
+            Some(Box::new(Self {
                 protocol_version: reader.read_varint(),
                 address: reader.read_utf(),
                 port: reader.read_unsigned_short(),
                 next_state: State::option_from(reader.read_varint() as usize)?,
-            }));
-        }
+            }))
+        };
     }
 }
 

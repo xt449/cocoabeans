@@ -1,7 +1,6 @@
-use crate::io::MinecraftReader;
 use crate::packet::packet_handler::State;
 use crate::packet::serverbound;
-use crate::packet::serverbound::{ServerBoundPacketBuilder, ServerBoundPayload};
+use crate::packet::serverbound::ServerBoundPacketBuilder;
 
 pub trait ProtocolVersion {
     fn get_id(&self) -> i32;
@@ -78,7 +77,7 @@ impl ProtocolVersion for V758 {
     ) -> Option<ServerBoundPacketBuilder> {
         return match connection_state {
             State::HANDSHAKING => match packet_id {
-                0 => Some(serverbound::handshaking::HandshakePayload::builder),
+                0 => Some(serverbound::handshaking::HandshakePayload::BUILDER),
                 _ => None,
             },
             State::STATUS => match packet_id {
