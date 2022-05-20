@@ -1,3 +1,3 @@
-pub mod clientbound_packets;
+pub mod clientbound;
 pub mod packet_handler;
 pub mod serverbound;

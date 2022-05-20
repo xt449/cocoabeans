@@ -13,5 +13,5 @@ serde_json = "1.0.81"
 bytes = "1.1.0"
 aes = "0.8.1"
 rsa = "0.6.1"
-macros = { path = "../macros" }
+extensions = { path = "../extensions" }
 nbt = { path = "../nbt" }

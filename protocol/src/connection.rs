@@ -20,8 +20,7 @@ impl Connection {
 // TCP Reader
 impl Connection {
     pub fn next(&mut self) {
-        let packets = self.packet_handler.read();
-        for packet in packets {
+        if let Some(packet) = self.packet_handler.read_next_packet() {
             packet.handle(&mut self.packet_handler);
         }
     }

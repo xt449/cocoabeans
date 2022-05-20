@@ -1,4 +1,5 @@
 use std::io::{Read, Write};
+use std::ops::Deref;
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use serde::de::DeserializeOwned;
@@ -232,6 +233,11 @@ impl Read for MinecraftReader {
 
 // Writer
 impl MinecraftWriter {
+    // TODO
+    pub fn to_array(&self) -> &[u8] {
+        return self.buf.chunk();
+    }
+
     // VarInt Special
     pub fn write_varint(&mut self, mut value: i32) {
         loop {

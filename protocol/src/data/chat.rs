@@ -1,6 +1,5 @@
 use serde::{Serialize, Serializer};
-
-use macros::json::Json;
+use serde_json::Value;
 
 pub enum Color {
     Black,
@@ -107,7 +106,7 @@ impl Serialize for HoverAction {
 pub struct HoverItem {
     id: String,
     count: Option<u8>,
-    tag: Json, // TODO: NBT
+    tag: Value, // TODO: NBT
 }
 
 #[derive(Serialize)]

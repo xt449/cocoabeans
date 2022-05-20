@@ -1,11 +1,14 @@
-use std::io::Read;
+use serde_json::json;
+use std::io::{Read, Write};
 use std::net::TcpStream;
 
-use crate::io::MinecraftReader;
-use crate::packet::serverbound::*;
+use crate::io::{MinecraftReader, MinecraftWriter};
+use crate::packet::clientbound;
+use crate::packet::clientbound::ClientBoundPacket;
+use crate::packet::serverbound;
+use crate::read_helper;
 use crate::versions;
 use crate::versions::ProtocolVersion;
-use crate::{read_helper, version_manager};
 
 pub enum State {
     HANDSHAKING = 0,
@@ -14,16 +17,36 @@ pub enum State {
     PLAY = 3,
 }
 
+impl TryFrom<usize> for State {
+    type Error = ();
+
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        return match value {
+            x if x == State::HANDSHAKING as usize => Ok(State::HANDSHAKING),
+            x if x == State::STATUS as usize => Ok(State::STATUS),
+            x if x == State::LOGIN as usize => Ok(State::LOGIN),
+            x if x == State::PLAY as usize => Ok(State::PLAY),
+            _ => Err(()),
+        };
+    }
+}
+
 pub trait IPacketHandler {
     // Handshaking
-    fn handle_handshaking_handshake(&mut self, payload: &handshaking::HandshakePayload);
+    fn handle_handshaking_handshake(
+        &mut self,
+        payload: &serverbound::handshaking::HandshakePayload,
+    );
     // Status
-    fn handle_status_request(&self, payload: &status::RequestPayload);
-    fn handle_status_ping(&self, payload: &status::PingPayload);
+    fn handle_status_request(&mut self, payload: &serverbound::status::RequestPayload);
+    fn handle_status_ping(&self, payload: &serverbound::status::PingPayload);
     // Login
-    fn handle_login_start(&self, payload: &login::StartPayload);
-    fn handle_login_encryption_response(&self, payload: &login::EncryptionResponsePayload);
-    fn handle_login_plugin_response(&self, payload: &login::PluginResponsePayload);
+    fn handle_login_start(&self, payload: &serverbound::login::StartPayload);
+    fn handle_login_encryption_response(
+        &self,
+        payload: &serverbound::login::EncryptionResponsePayload,
+    );
+    fn handle_login_plugin_response(&self, payload: &serverbound::login::PluginResponsePayload);
     // Play - TODO
 }
 
@@ -50,16 +73,14 @@ impl PacketHandler {
 
 // Packet stuff
 impl PacketHandler {
-    pub fn read(&mut self) -> Option<ServerBoundPacket> {
+    pub fn read_next_packet(&mut self) -> Option<serverbound::ServerBoundPacket> {
         let length = read_helper::read_varint(&mut self.stream);
         if length == 0 {
             return None;
         }
 
         let mut vec = Vec::<u8>::with_capacity(length as usize);
-        let read_result = self
-            .stream
-            .by_ref()
+        let read_result = Read::by_ref(&mut self.stream)
             .take(length as u64)
             .read_to_end(&mut vec);
         if let Err(_) = read_result {
@@ -85,16 +106,16 @@ impl PacketHandler {
         return MinecraftReader::from(vec.as_slice());
     }
 
-    fn decode_packet(
+    fn decode_packet<'a>(
         state: &State,
-        protocol_version: &dyn ProtocolVersion,
+        protocol_version: &'a dyn ProtocolVersion,
         mut reader: MinecraftReader,
-    ) -> Option<ServerBoundPacket> {
+    ) -> Option<Box<dyn serverbound::ServerBoundPayload>> {
         println!("reader buffer {}", reader.remaining());
         let id = reader.read_varint();
         return match protocol_version.get_packet_builder_from_id(state, id as u8) {
             None => None,
-            Some(builder) => Some(builder(&reader)),
+            Some(builder) => builder(reader),
         };
     }
 }
@@ -102,34 +123,69 @@ impl PacketHandler {
 impl IPacketHandler for PacketHandler {
     // Handshaking
 
-    fn handle_handshaking_handshake(&mut self, payload: &handshaking::HandshakePayload) {
-        if let Some(version) = version_manager::get_protocol_version(payload.protocol_version) {
-            self.protocol_version = version;
+    fn handle_handshaking_handshake(
+        &mut self,
+        payload: &serverbound::handshaking::HandshakePayload,
+    ) {
+        // TODO - magic value
+        if payload.protocol_version != 758 {
+            return;
         }
-        todo!()
+
+        match payload.next_state {
+            State::STATUS => {
+                self.state = State::STATUS;
+            }
+            State::LOGIN => {
+                self.state = State::LOGIN;
+            }
+            _ => {}
+        }
     }
 
     // Status
 
-    fn handle_status_request(&self, payload: &status::RequestPayload) {
+    fn handle_status_request(&mut self, payload: &serverbound::status::RequestPayload) {
+        let mut buffer = MinecraftWriter::new();
+        clientbound::status::ResponsePacket {
+            json_payload: json!({
+                "version": {
+                    "name": "1.8.7",
+                    "protocol": self.protocol_version.get_id()
+                },
+                "players": {
+                    "max": 14,
+                    "online": 3
+                },
+                "description": {
+                    "text": "Hello world",
+                    "color": "aqua"
+                }
+            }),
+        }
+        .write_to(&mut buffer, self.protocol_version);
+        self.stream.write_all(buffer.to_array()).unwrap();
         todo!()
     }
 
-    fn handle_status_ping(&self, payload: &status::PingPayload) {
+    fn handle_status_ping(&self, payload: &serverbound::status::PingPayload) {
         todo!()
     }
 
     // Login
 
-    fn handle_login_start(&self, payload: &login::StartPayload) {
+    fn handle_login_start(&self, payload: &serverbound::login::StartPayload) {
         todo!()
     }
 
-    fn handle_login_encryption_response(&self, payload: &login::EncryptionResponsePayload) {
+    fn handle_login_encryption_response(
+        &self,
+        payload: &serverbound::login::EncryptionResponsePayload,
+    ) {
         todo!()
     }
 
-    fn handle_login_plugin_response(&self, payload: &login::PluginResponsePayload) {
+    fn handle_login_plugin_response(&self, payload: &serverbound::login::PluginResponsePayload) {
         todo!()
     }
 

@@ -3,7 +3,7 @@ name = "cocoabeans"
 
 members = [
     "entities",
-    "macros",
+    "extensions",
     "math",
     "nbt",
     "protocol",
