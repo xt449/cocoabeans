@@ -1,5 +1,4 @@
 use std::io::{Read, Write};
-use std::ops::Deref;
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use serde::de::DeserializeOwned;
@@ -303,7 +302,9 @@ impl MinecraftWriter {
     }
 
     pub fn write_utf(&mut self, value: &str) {
-        self.buf.put_slice(value.as_bytes());
+        let bytes = value.as_bytes();
+        self.write_varint(bytes.len() as i32);
+        self.buf.put_slice(bytes);
     }
 
     pub fn write_json<T: Serialize>(&mut self, value: &T) {

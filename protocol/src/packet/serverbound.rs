@@ -58,9 +58,7 @@ pub mod status {
     }
 
     impl RequestPayload {
-        pub const BUILDER: ServerBoundPacketBuilder = |mut reader| {
-            Some(Box::new(Self {}))
-        };
+        pub const BUILDER: ServerBoundPacketBuilder = |_| Some(Box::new(Self {}));
     }
 
     pub struct PingPayload {

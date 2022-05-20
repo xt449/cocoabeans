@@ -1,6 +1,5 @@
 use blocks::BlockState;
 use nbt::lib::Value;
-use registries::particle_type::ParticleTypeRegistry::ash;
 use std::collections::HashMap;
 use std::ops::Deref;
 

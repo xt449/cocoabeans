@@ -1,12 +1,13 @@
+use extensions::{VarIntRead, VarIntWrite};
 use serde_json::json;
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::ops::Deref;
 
 use crate::io::{MinecraftReader, MinecraftWriter};
 use crate::packet::clientbound;
 use crate::packet::clientbound::ClientBoundPacket;
 use crate::packet::serverbound;
-use crate::read_helper;
 use crate::versions;
 use crate::versions::ProtocolVersion;
 
@@ -73,8 +74,41 @@ impl PacketHandler {
 
 // Packet stuff
 impl PacketHandler {
+    pub fn write_packet<T: ClientBoundPacket>(&mut self, packet: T) {
+        let mut buffer = MinecraftWriter::new();
+        packet.write_to(&mut buffer, self.protocol_version);
+        let mut bytes = Vec::from(buffer.to_array());
+        println!(
+            "Sending packet #{} with total length {}",
+            bytes[0],
+            bytes.len()
+        );
+
+        //bytes.insert(0, bytes.len() as u8);
+        println!(
+            "[ {} ]",
+            bytes
+                .iter()
+                .map(|v| format!("{:02X}", v))
+                .collect::<Vec<String>>()
+                .join(" ")
+        );
+
+        let mut buffer = MinecraftReader::from(buffer.to_array());
+        println!(
+            "id: {}, string: {}",
+            buffer.read_unsigned_byte(),
+            buffer.read_utf()
+        );
+
+        self.stream.write_varint(bytes.len() as i32).unwrap();
+        self.stream.write_all(bytes.deref()).unwrap();
+    }
+
     pub fn read_next_packet(&mut self) -> Option<serverbound::ServerBoundPacket> {
-        let length = read_helper::read_varint(&mut self.stream);
+        //self.stream.peek(&mut [0, 0]).expect("HOW THOUGH"); // TODO
+
+        let length = self.stream.read_varint();
         if length == 0 {
             return None;
         }
@@ -111,8 +145,26 @@ impl PacketHandler {
         protocol_version: &'a dyn ProtocolVersion,
         mut reader: MinecraftReader,
     ) -> Option<serverbound::ServerBoundPacket> {
-        println!("reader buffer {}", reader.remaining());
+        println!("Decoding packet {} bytes long...", reader.remaining());
         let id = reader.read_varint();
+        println!(
+            "Decoding packet id#{} in state {}",
+            id,
+            match state {
+                State::HANDSHAKING => {
+                    "HANDSHAKING"
+                }
+                State::STATUS => {
+                    "STATUS"
+                }
+                State::LOGIN => {
+                    "LOGIN"
+                }
+                State::PLAY => {
+                    "PLAY"
+                }
+            }
+        );
         return match protocol_version.get_packet_builder_from_id(state, id as u8) {
             None => None,
             Some(builder) => builder(reader),
@@ -127,6 +179,7 @@ impl IPacketHandler for PacketHandler {
         &mut self,
         payload: &serverbound::handshaking::HandshakePayload,
     ) {
+        println!("Received HandshakePayload");
         // TODO - magic value
         if payload.protocol_version != 758 {
             return;
@@ -146,8 +199,7 @@ impl IPacketHandler for PacketHandler {
     // Status
 
     fn handle_status_request(&mut self, payload: &serverbound::status::RequestPayload) {
-        let mut buffer = MinecraftWriter::new();
-        clientbound::status::ResponsePacket {
+        self.write_packet(clientbound::status::ResponsePacket {
             json_payload: json!({
                 "version": {
                     "name": "1.8.7",
@@ -158,22 +210,16 @@ impl IPacketHandler for PacketHandler {
                     "online": 3
                 },
                 "description": {
-                    "text": "Hello world",
-                    "color": "aqua"
+                    "text": "Hello world"
                 }
             }),
-        }
-        .write_to(&mut buffer, self.protocol_version);
-        self.stream.write_all(buffer.to_array()).unwrap();
+        });
     }
 
     fn handle_status_ping(&mut self, payload: &serverbound::status::PingPayload) {
-        let mut buffer = MinecraftWriter::new();
-        clientbound::status::PongPacket {
+        self.write_packet(clientbound::status::PongPacket {
             payload: payload.payload,
-        }
-        .write_to(&mut buffer, self.protocol_version);
-        self.stream.write_all(buffer.to_array()).unwrap();
+        });
     }
 
     // Login
@@ -189,7 +235,10 @@ impl IPacketHandler for PacketHandler {
         todo!()
     }
 
-    fn handle_login_plugin_response(&mut self, payload: &serverbound::login::PluginResponsePayload) {
+    fn handle_login_plugin_response(
+        &mut self,
+        payload: &serverbound::login::PluginResponsePayload,
+    ) {
         todo!()
     }
 

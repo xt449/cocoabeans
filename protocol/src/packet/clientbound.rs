@@ -53,11 +53,7 @@ pub mod login {
     }
 
     impl ClientBoundPacket for DisconnectPacket {
-        fn write_to(
-            &self,
-            mut stream: &mut MinecraftWriter,
-            protocol_version: &dyn ProtocolVersion,
-        ) {
+        fn write_to(&self, stream: &mut MinecraftWriter, protocol_version: &dyn ProtocolVersion) {
             stream.write_unsigned_byte(protocol_version.get_status_pong_id());
             stream.write_json(&self.json_chat);
         }
@@ -70,11 +66,7 @@ pub mod login {
     }
 
     impl ClientBoundPacket for EncryptionRequestPacket {
-        fn write_to(
-            &self,
-            mut stream: &mut MinecraftWriter,
-            protocol_version: &dyn ProtocolVersion,
-        ) {
+        fn write_to(&self, stream: &mut MinecraftWriter, protocol_version: &dyn ProtocolVersion) {
             stream.write_unsigned_byte(protocol_version.get_status_pong_id());
             stream.write_utf(&self.server_id);
             stream.write_byte_vec(&self.key);
@@ -88,11 +80,7 @@ pub mod login {
     }
 
     impl ClientBoundPacket for SuccessPacket {
-        fn write_to(
-            &self,
-            mut stream: &mut MinecraftWriter,
-            protocol_version: &dyn ProtocolVersion,
-        ) {
+        fn write_to(&self, stream: &mut MinecraftWriter, protocol_version: &dyn ProtocolVersion) {
             stream.write_unsigned_byte(protocol_version.get_status_pong_id());
             stream.write_uuid(self.uuid);
             stream.write_utf(&self.username);
@@ -104,11 +92,7 @@ pub mod login {
     }
 
     impl ClientBoundPacket for SetCompressionPacket {
-        fn write_to(
-            &self,
-            mut stream: &mut MinecraftWriter,
-            protocol_version: &dyn ProtocolVersion,
-        ) {
+        fn write_to(&self, stream: &mut MinecraftWriter, protocol_version: &dyn ProtocolVersion) {
             stream.write_unsigned_byte(protocol_version.get_status_pong_id());
             stream.write_varint(self.compression_threshold);
         }
@@ -121,11 +105,7 @@ pub mod login {
     }
 
     impl ClientBoundPacket for PluginRequestPacket {
-        fn write_to(
-            &self,
-            mut stream: &mut MinecraftWriter,
-            protocol_version: &dyn ProtocolVersion,
-        ) {
+        fn write_to(&self, stream: &mut MinecraftWriter, protocol_version: &dyn ProtocolVersion) {
             stream.write_unsigned_byte(protocol_version.get_status_pong_id());
             stream.write_int(self.message_id);
             stream.write(&self.identifier);
