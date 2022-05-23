@@ -1,5 +1,5 @@
 use crate::comparison::min_max;
-use crate::coordinate::Position;
+use crate::coordinate::IntPosition;
 
 pub struct BoundingBox {
     // Min Corner
@@ -29,7 +29,7 @@ impl BoundingBox {
         };
     }
 
-    fn new_corner_positions(pos1: &Position, pos2: &Position) -> Self {
+    fn new_corner_positions(pos1: &IntPosition, pos2: &IntPosition) -> Self {
         return BoundingBox::new_corners(pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z);
     }
 }
@@ -63,7 +63,7 @@ impl BoundingBox2 {
         };
     }
 
-    fn new_corner_positions(pos1: &Position, pos2: &Position) -> Self {
+    fn new_corner_positions(pos1: &IntPosition, pos2: &IntPosition) -> Self {
         return BoundingBox2::new_corners(pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z);
     }
 }
