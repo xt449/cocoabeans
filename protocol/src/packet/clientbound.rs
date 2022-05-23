@@ -1,5 +1,5 @@
 use crate::io::MinecraftWriter;
-use crate::versions::ProtocolVersion;
+use crate::version::ProtocolVersion;
 
 pub trait ClientBoundPacket {
     fn write_to(&self, stream: &mut MinecraftWriter, protocol_version: &dyn ProtocolVersion);
@@ -14,7 +14,7 @@ pub mod status {
 
     use crate::io::MinecraftWriter;
     use crate::packet::Packet;
-    use crate::versions::ProtocolVersion;
+    use crate::version::ProtocolVersion;
 
     use super::ClientBoundPacket;
 
@@ -57,7 +57,7 @@ pub mod login {
     use crate::io::MinecraftWriter;
     use crate::packet::clientbound::ClientBoundPacket;
     use crate::packet::Packet;
-    use crate::versions::ProtocolVersion;
+    use crate::version::ProtocolVersion;
 
     pub struct DisconnectPacket {
         pub json_chat: Value,

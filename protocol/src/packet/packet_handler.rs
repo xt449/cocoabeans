@@ -8,9 +8,10 @@ use crate::io::{MinecraftReader, MinecraftWriter};
 use crate::packet::clientbound;
 use crate::packet::clientbound::ClientBoundPacket;
 use crate::packet::serverbound;
-use crate::versions;
-use crate::versions::ProtocolVersion;
+use crate::version_manager;
+use crate::version::ProtocolVersion;
 
+#[derive(Copy, Clone)]
 pub enum State {
     HANDSHAKING = 0,
     STATUS = 1,
@@ -68,7 +69,7 @@ impl<'a> PacketHandler<'a> {
         return PacketHandler {
             stream: stream,
             state: State::HANDSHAKING,
-            protocol_version: &versions::V758 {},
+            protocol_version: &version_manager::V758 {},
             compression: false,
             encryption: None,
         };
@@ -142,7 +143,7 @@ impl<'a> PacketHandler<'a> {
             Some(cipher) => PacketHandler::decrypt_packet(cipher, vec),
         };
 
-        return match PacketHandler::decode_packet(&self.state, self.protocol_version, packet_data) {
+        return match self.decode_packet(packet_data) {
             None => Err(Error::new(
                 ErrorKind::InvalidData,
                 "Unable to decrypt packet",
@@ -156,24 +157,20 @@ impl<'a> PacketHandler<'a> {
         return MinecraftReader::from(vec.as_slice());
     }
 
-    fn decode_packet(
-        state: &State,
-        protocol_version: &dyn ProtocolVersion,
-        mut reader: MinecraftReader,
-    ) -> Option<serverbound::ServerBoundPacket> {
+    fn decode_packet(&self, mut reader: MinecraftReader) -> Option<serverbound::ServerBoundPacket> {
         println!("Decoding packet {} bytes long...", reader.remaining());
         let id = reader.read_varint();
         println!(
             "Decoding packet id#{} in state {}",
             id,
-            match state {
+            match self.state {
                 State::HANDSHAKING => "HANDSHAKING",
                 State::STATUS => "STATUS",
                 State::LOGIN => "LOGIN",
                 State::PLAY => "PLAY",
             }
         );
-        return match protocol_version.get_packet_builder_from_id(state, id as u8) {
+        return match self.protocol_version.get_packet_builder_from_id(self.state.clone(), id as u8) {
             None => None,
             Some(builder) => builder(reader),
         };
