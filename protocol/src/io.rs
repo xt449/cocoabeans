@@ -25,7 +25,7 @@ pub struct MinecraftReader {
 }
 
 pub struct MinecraftWriter {
-    buf: BytesMut,
+    pub buf: BytesMut,
 }
 
 pub struct MinecraftBuffer {

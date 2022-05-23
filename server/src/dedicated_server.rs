@@ -4,7 +4,7 @@ use std::net::{SocketAddr, TcpListener, TcpStream};
 use protocol::connection::Connection;
 
 fn handle_connection(address: SocketAddr, stream: TcpStream) {
-    println!("Starting client connection!");
+    println!("Starting client connection! ({address})");
     let mut connection = Connection::new(address, stream);
     loop {
         if let Err(_) = connection.packet_handler.next() {
@@ -12,7 +12,7 @@ fn handle_connection(address: SocketAddr, stream: TcpStream) {
             break;
         }
     }
-    println!("Closing client connection!");
+    println!("Closing client connection! ({address})");
 }
 
 pub fn start() -> Result<(), Error> {
@@ -20,7 +20,7 @@ pub fn start() -> Result<(), Error> {
     let address: SocketAddr = "0.0.0.0:25565".parse().unwrap();
     let server = TcpListener::bind(address)?;
 
-    println!("Server started!\nNow listening on '{}'", address);
+    println!("Server started!\nNow listening on '{address}'");
 
     loop {
         match server.accept() {
@@ -28,7 +28,7 @@ pub fn start() -> Result<(), Error> {
                 std::thread::spawn(move || handle_connection(address, stream));
             }
             Err(e) => {
-                println!("Error accepting incoming connection: {}", e);
+                println!("Error accepting incoming connection: {e}");
             }
         }
     }

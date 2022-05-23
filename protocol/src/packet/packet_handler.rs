@@ -52,11 +52,11 @@ pub trait IPacketHandler {
 }
 
 pub struct PacketHandler<'a> {
-    pub stream: TcpStream,
-    pub state: State,
-    pub protocol_version: &'a dyn ProtocolVersion,
-    pub compression: bool,
-    pub encryption: Option<u64>,
+    stream: TcpStream,
+    state: State,
+    protocol_version: &'a dyn ProtocolVersion,
+    compression: bool,
+    encryption: Option<u64>,
 }
 
 // Constructor
@@ -75,21 +75,21 @@ impl<'a> PacketHandler<'a> {
     }
 }
 
-// Packet stuff
+// Packet Accessors
 impl<'a> PacketHandler<'a> {
     pub fn write_packet<T: ClientBoundPacket>(&mut self, packet: T) {
         let mut buffer = MinecraftWriter::new();
         packet.write_to(&mut buffer, self.protocol_version);
-        let mut bytes = Vec::from(buffer.to_array());
+        let bytes = buffer.to_array();
         println!(
-            "Sending packet #{} with total length {}",
+            "DEBUG Sending packet #{} with total length {}",
             bytes[0],
             bytes.len()
         );
 
         //bytes.insert(0, bytes.len() as u8);
         println!(
-            "[ {} ]",
+            "DEBUG [ {} ]",
             bytes
                 .iter()
                 .map(|v| format!("{:02X}", v))
@@ -99,7 +99,7 @@ impl<'a> PacketHandler<'a> {
 
         let mut buffer = MinecraftReader::from(buffer.to_array());
         println!(
-            "id: {}, string: {}",
+            "DEBUG id: {}, string: {}",
             buffer.read_unsigned_byte(),
             buffer.read_utf()
         );
@@ -180,6 +180,7 @@ impl<'a> PacketHandler<'a> {
     }
 }
 
+// Packet Handler
 impl<'a> IPacketHandler for PacketHandler<'a> {
     // Handshaking
 
