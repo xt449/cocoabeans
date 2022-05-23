@@ -1,18 +1,23 @@
-use std::error::Error;
+use std::io::Error;
 use std::net::{SocketAddr, TcpListener, TcpStream};
 
 use protocol::connection::Connection;
 
 fn handle_connection(address: SocketAddr, stream: TcpStream) {
+    println!("Starting client connection!");
     let mut connection = Connection::new(address, stream);
     loop {
-        connection.next();
+        if let Err(_) = connection.packet_handler.next() {
+            // End of Stream
+            break;
+        }
     }
+    println!("Closing client connection!");
 }
 
-pub fn start() -> Result<(), Box<dyn Error>> {
+pub fn start() -> Result<(), Error> {
     // Setup the TCP server socket.
-    let address: SocketAddr = "0.0.0.0:25565".parse()?;
+    let address: SocketAddr = "0.0.0.0:25565".parse().unwrap();
     let server = TcpListener::bind(address)?;
 
     println!("Server started!\nNow listening on '{}'", address);

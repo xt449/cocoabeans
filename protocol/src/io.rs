@@ -6,6 +6,12 @@ use serde::Serialize;
 
 use nbt::lib::Value;
 
+pub enum TcpStreamResult<T> {
+    Ok(T),
+    None,
+    Eof,
+}
+
 pub trait MinecraftReadable<T> {
     fn deserialize_from(reader: &mut MinecraftReader) -> Result<T, ()>;
 }

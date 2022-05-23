@@ -1,6 +1,6 @@
 use extensions::{VarIntRead, VarIntWrite};
 use serde_json::json;
-use std::io::{Read, Write};
+use std::io::{Error, ErrorKind, Read, Write};
 use std::net::TcpStream;
 use std::ops::Deref;
 
@@ -51,17 +51,20 @@ pub trait IPacketHandler {
     // Play - TODO
 }
 
-pub struct PacketHandler {
+pub struct PacketHandler<'a> {
     pub stream: TcpStream,
     pub state: State,
-    pub protocol_version: &'static dyn ProtocolVersion,
+    pub protocol_version: &'a dyn ProtocolVersion,
     pub compression: bool,
     pub encryption: Option<u64>,
 }
 
 // Constructor
-impl PacketHandler {
-    pub fn new(stream: TcpStream) -> PacketHandler {
+impl<'a> PacketHandler<'a> {
+    pub fn new(stream: TcpStream) -> PacketHandler<'a> {
+        stream
+            .set_nonblocking(false)
+            .expect("Unable to make TcpStream blocking");
         return PacketHandler {
             stream: stream,
             state: State::HANDSHAKING,
@@ -73,7 +76,7 @@ impl PacketHandler {
 }
 
 // Packet stuff
-impl PacketHandler {
+impl<'a> PacketHandler<'a> {
     pub fn write_packet<T: ClientBoundPacket>(&mut self, packet: T) {
         let mut buffer = MinecraftWriter::new();
         packet.write_to(&mut buffer, self.protocol_version);
@@ -105,33 +108,46 @@ impl PacketHandler {
         self.stream.write_all(bytes.deref()).unwrap();
     }
 
-    pub fn read_next_packet(&mut self) -> Option<serverbound::ServerBoundPacket> {
-        //self.stream.peek(&mut [0, 0]).expect("HOW THOUGH"); // TODO
+    pub fn next(&mut self) -> Result<(), Error> {
+        let packet = self.read_next_packet()?;
+        packet.handle(self);
+        return Ok(());
+    }
 
-        let length = self.stream.read_varint();
-        if length == 0 {
-            return None;
+    fn read_next_packet(&mut self) -> Result<serverbound::ServerBoundPacket, Error> {
+        let mut length: i32;
+        loop {
+            // do while
+            match self.stream.read_varint() {
+                Ok(v) => {
+                    length = v;
+                }
+                Err(e) => {
+                    return Err(e);
+                }
+            }
+            if length != 0 {
+                break;
+            }
         }
 
         let mut vec = Vec::<u8>::with_capacity(length as usize);
-        let read_result = Read::by_ref(&mut self.stream)
+        (&self.stream)
             .take(length as u64)
-            .read_to_end(&mut vec);
-        if let Err(_) = read_result {
-            return None;
-        }
+            .read_to_end(&mut vec)
+            .expect("Error reading from Take of TcpStream");
 
-        return match self.encryption {
-            None => PacketHandler::decode_packet(
-                &self.state,
-                self.protocol_version,
-                MinecraftReader::from(vec.as_slice()),
-            ),
-            Some(cipher) => PacketHandler::decode_packet(
-                &self.state,
-                self.protocol_version,
-                PacketHandler::decrypt_packet(cipher, vec),
-            ),
+        let packet_data = match self.encryption {
+            None => MinecraftReader::from(vec.as_slice()),
+            Some(cipher) => PacketHandler::decrypt_packet(cipher, vec),
+        };
+
+        return match PacketHandler::decode_packet(&self.state, self.protocol_version, packet_data) {
+            None => Err(Error::new(
+                ErrorKind::InvalidData,
+                "Unable to decrypt packet",
+            )),
+            Some(packet) => Ok(packet),
         };
     }
 
@@ -140,9 +156,9 @@ impl PacketHandler {
         return MinecraftReader::from(vec.as_slice());
     }
 
-    fn decode_packet<'a>(
+    fn decode_packet(
         state: &State,
-        protocol_version: &'a dyn ProtocolVersion,
+        protocol_version: &dyn ProtocolVersion,
         mut reader: MinecraftReader,
     ) -> Option<serverbound::ServerBoundPacket> {
         println!("Decoding packet {} bytes long...", reader.remaining());
@@ -151,18 +167,10 @@ impl PacketHandler {
             "Decoding packet id#{} in state {}",
             id,
             match state {
-                State::HANDSHAKING => {
-                    "HANDSHAKING"
-                }
-                State::STATUS => {
-                    "STATUS"
-                }
-                State::LOGIN => {
-                    "LOGIN"
-                }
-                State::PLAY => {
-                    "PLAY"
-                }
+                State::HANDSHAKING => "HANDSHAKING",
+                State::STATUS => "STATUS",
+                State::LOGIN => "LOGIN",
+                State::PLAY => "PLAY",
             }
         );
         return match protocol_version.get_packet_builder_from_id(state, id as u8) {
@@ -172,7 +180,7 @@ impl PacketHandler {
     }
 }
 
-impl IPacketHandler for PacketHandler {
+impl<'a> IPacketHandler for PacketHandler<'a> {
     // Handshaking
 
     fn handle_handshaking_handshake(
@@ -202,12 +210,12 @@ impl IPacketHandler for PacketHandler {
         self.write_packet(clientbound::status::ResponsePacket {
             json_payload: json!({
                 "version": {
-                    "name": "1.8.7",
+                    "name": "1.18.2 or not",
                     "protocol": self.protocol_version.get_id()
                 },
                 "players": {
-                    "max": 14,
-                    "online": 3
+                    "max": 1000000000,
+                    "online": -1
                 },
                 "description": {
                     "text": "Hello world",

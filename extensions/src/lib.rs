@@ -40,17 +40,18 @@ const SEGMENT_BITS: u8 = 0x7F;
 const CONTINUE_BIT: u8 = 0x80;
 
 pub trait VarIntRead: UnsignedByteRead {
-    fn read_varint(&mut self) -> i32 {
+    fn read_varint(&mut self) -> std::io::Result<i32> {
         let mut value: i32 = 0;
         let mut position: i32 = 0;
 
         loop {
-            let current_byte = self.read_unsigned_byte();
+            let current_byte = self.read_unsigned_byte()?;
+            println!(">> Reading varint {}", current_byte);
             value |= ((current_byte & SEGMENT_BITS) as i32) << position;
 
             if (current_byte & CONTINUE_BIT) == 0 {
                 println!(">> Finished varint {}", value);
-                return value;
+                return Ok(value);
             }
 
             position += 7;
@@ -58,7 +59,7 @@ pub trait VarIntRead: UnsignedByteRead {
             if position >= 32 {
                 // Too big
                 println!(">> Overflowed varint {}", value);
-                return value;
+                return Ok(value);
             }
         }
     }
@@ -67,10 +68,10 @@ pub trait VarIntRead: UnsignedByteRead {
 impl<U> VarIntRead for U where U: Read {}
 
 pub trait UnsignedByteRead: Read {
-    fn read_unsigned_byte(&mut self) -> u8 {
+    fn read_unsigned_byte(&mut self) -> std::io::Result<u8> {
         let mut byte_in = [0];
-        self.read_exact(&mut byte_in).unwrap();
-        return byte_in[0];
+        self.read_exact(&mut byte_in)?;
+        return Ok(byte_in[0]);
     }
 }
 

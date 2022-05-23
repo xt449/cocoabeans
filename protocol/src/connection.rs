@@ -2,14 +2,14 @@ use std::net::{SocketAddr, TcpStream};
 
 use crate::packet::packet_handler::PacketHandler;
 
-pub struct Connection {
+pub struct Connection<'c> {
     address: SocketAddr,
-    packet_handler: PacketHandler,
+    pub packet_handler: PacketHandler<'c>,
 }
 
 // Constructor
-impl Connection {
-    pub fn new(address: SocketAddr, stream: TcpStream) -> Connection {
+impl<'c> Connection<'c> {
+    pub fn new(address: SocketAddr, stream: TcpStream) -> Connection<'c> {
         return Connection {
             address: address,
             packet_handler: PacketHandler::new(stream),
@@ -17,17 +17,8 @@ impl Connection {
     }
 }
 
-// TCP Reader
-impl Connection {
-    pub fn next(&mut self) {
-        if let Some(packet) = self.packet_handler.read_next_packet() {
-            packet.handle(&mut self.packet_handler);
-        }
-    }
-}
-
 // Getters
-impl Connection {
+impl<'c> Connection<'c> {
     pub fn get_address(&self) -> &SocketAddr {
         return &self.address;
     }
