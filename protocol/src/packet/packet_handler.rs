@@ -30,15 +30,15 @@ impl State {
     }
 }
 
-impl TryFrom<usize> for State {
+impl TryFrom<i8> for State {
     type Error = ();
 
-    fn try_from(value: usize) -> Result<Self, Self::Error> {
+    fn try_from(value: i8) -> Result<Self, Self::Error> {
         return match value {
-            x if x == State::HANDSHAKING as usize => Ok(State::HANDSHAKING),
-            x if x == State::STATUS as usize => Ok(State::STATUS),
-            x if x == State::LOGIN as usize => Ok(State::LOGIN),
-            x if x == State::PLAY as usize => Ok(State::PLAY),
+            x if x == State::HANDSHAKING as i8 => Ok(State::HANDSHAKING),
+            x if x == State::STATUS as i8 => Ok(State::STATUS),
+            x if x == State::LOGIN as i8 => Ok(State::LOGIN),
+            x if x == State::PLAY as i8 => Ok(State::PLAY),
             _ => Err(()),
         };
     }

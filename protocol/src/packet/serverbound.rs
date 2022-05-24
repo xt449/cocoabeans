@@ -35,7 +35,7 @@ pub mod handshaking {
                 protocol_version: reader.read_varint(),
                 address: reader.read_utf(),
                 port: reader.read_unsigned_short(),
-                next_state: State::option_from(reader.read_varint() as usize)?,
+                next_state: State::option_from(reader.read_varint() as i8)?,
             }))
         };
     }
