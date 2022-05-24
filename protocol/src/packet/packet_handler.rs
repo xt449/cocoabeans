@@ -14,10 +14,10 @@ use crate::version_manager;
 
 #[derive(Copy, Clone)]
 pub enum State {
-    HANDSHAKING = 0,
+    HANDSHAKING = -1,
+    PLAY = 0,
     STATUS = 1,
     LOGIN = 2,
-    PLAY = 3,
 }
 
 impl State {
