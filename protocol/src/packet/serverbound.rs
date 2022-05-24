@@ -81,8 +81,6 @@ pub mod status {
 }
 
 pub mod login {
-    use std::fs::read;
-    use registries::worldgen_structure_piece::WorldgenStructurePieceRegistry::omsimplet;
     use crate::packet::packet_handler::IPacketHandler;
     use crate::packet::serverbound::{ServerBoundPacketBuilder, ServerBoundPayload};
 

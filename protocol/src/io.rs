@@ -6,12 +6,6 @@ use serde::Serialize;
 
 use nbt::lib::Value;
 
-pub enum TcpStreamResult<T> {
-    Ok(T),
-    None,
-    Eof,
-}
-
 pub trait MinecraftReadable<T> {
     fn deserialize_from(reader: &mut MinecraftReader) -> Result<T, ()>;
 }
@@ -28,6 +22,7 @@ pub struct MinecraftWriter {
     pub buf: BytesMut,
 }
 
+// TODO - should be used for packet encryption
 pub struct MinecraftBuffer {
     buf: BytesMut,
 }
@@ -223,9 +218,16 @@ impl MinecraftReader {
         return self.buf.copy_to_bytes(length);
     }
 
-    // TODO - Woah! OOP
     pub fn read<T: MinecraftReadable<T>>(&mut self) -> Result<T, ()> {
         return T::deserialize_from(self);
+    }
+
+    pub fn read_option<T: MinecraftReadable<T>>(&mut self) -> Result<Option<T>, ()> {
+        return if self.read_boolean() {
+            T::deserialize_from(self).map(|v| Some(v))
+        } else {
+            Ok(None)
+        };
     }
 }
 
@@ -238,8 +240,8 @@ impl Read for MinecraftReader {
 
 // Writer
 impl MinecraftWriter {
-    // TODO
-    pub fn to_array(&self) -> &[u8] {
+    // Easily get contents of buf to write elsewhere
+    pub fn to_slice(&self) -> &[u8] {
         return self.buf.chunk();
     }
 
@@ -333,16 +335,10 @@ impl MinecraftWriter {
         self.buf.put_slice(value);
     }
 
-    // pub fn write_chat_component(&mut self, value: &ChatComponent) {
-    //     self.buf.put_slice(serde_json::to_string(value).unwrap().as_bytes());
-    // }
-
-    // TODO - Woah! OOP
     pub fn write<T: MinecraftWritable>(&mut self, value: &T) {
         value.serialize_to(self);
     }
 
-    // TODO - Woah! OOP
     pub fn write_option<T: MinecraftWritable>(&mut self, value: &Option<T>) {
         match value {
             None => self.write_unsigned_byte(0),

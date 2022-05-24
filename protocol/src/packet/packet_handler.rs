@@ -143,7 +143,7 @@ impl<'a> PacketHandler<'a> {
     pub fn write_packet<T: ClientBoundPacket>(&mut self, packet: T) {
         let mut buffer = MinecraftWriter::new();
         packet.write_to(&mut buffer, self.protocol_version);
-        let bytes = buffer.to_array();
+        let bytes = buffer.to_slice();
         println!(
             "DEBUG Sending packet #{} with total length {}",
             bytes[0],
@@ -160,7 +160,7 @@ impl<'a> PacketHandler<'a> {
                 .join(" ")
         );
 
-        let mut buffer = MinecraftReader::from(buffer.to_array());
+        let mut buffer = MinecraftReader::from(buffer.to_slice());
         println!(
             "DEBUG id: {}, string: {}",
             buffer.read_unsigned_byte(),
