@@ -14,4 +14,5 @@ bytes = "1.1.0"
 aes = "0.8.1"
 rsa = "0.6.1"
 extensions = { path = "../extensions" }
+math = { path = "../math" }
 nbt = { path = "../nbt" }

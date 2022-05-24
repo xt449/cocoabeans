@@ -43,7 +43,11 @@ impl PacketIdentifier for V758 {
 }
 
 impl PacketBuilderManager for V758 {
-    fn get_packet_builder_from_id(&self, connection_state: State, packet_id: u8, ) -> Option<ServerBoundPacketBuilder> {
+    fn get_packet_builder_from_id(
+        &self,
+        connection_state: State,
+        packet_id: u8,
+    ) -> Option<ServerBoundPacketBuilder> {
         return match connection_state {
             State::HANDSHAKING => match packet_id {
                 0 => Some(serverbound::handshaking::HandshakePayload::BUILDER),
