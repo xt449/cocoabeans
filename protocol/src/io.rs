@@ -117,7 +117,7 @@ impl MinecraftReader {
         };
     }
 
-    // TODO
+    // Check remining packet length
     pub fn remaining(&self) -> usize {
         return self.buf.remaining();
     }

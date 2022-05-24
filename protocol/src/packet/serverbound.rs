@@ -81,8 +81,10 @@ pub mod status {
 }
 
 pub mod login {
+    use std::fs::read;
+    use registries::worldgen_structure_piece::WorldgenStructurePieceRegistry::omsimplet;
     use crate::packet::packet_handler::IPacketHandler;
-    use crate::packet::serverbound::ServerBoundPayload;
+    use crate::packet::serverbound::{ServerBoundPacketBuilder, ServerBoundPayload};
 
     // payloads
 
@@ -96,6 +98,14 @@ pub mod login {
         }
     }
 
+    impl StartPayload {
+        pub const BUILDER: ServerBoundPacketBuilder = |mut reader| {
+            Some(Box::new(Self {
+                username: reader.read_utf(),
+            }))
+        };
+    }
+
     pub struct EncryptionResponsePayload {
         secret: Vec<u8>,
         verification_token: Vec<u8>,
@@ -107,16 +117,47 @@ pub mod login {
         }
     }
 
+    impl EncryptionResponsePayload {
+        pub const BUILDER: ServerBoundPacketBuilder = |mut reader| {
+            let length = reader.read_varint();
+            let secret = reader.read_byte_vec(length as usize);
+            let length = reader.read_varint();
+            let verification_token = reader.read_byte_vec(length as usize);
+            Some(Box::new(Self {
+                secret,
+                verification_token
+            }))
+        };
+    }
+
     pub struct PluginResponsePayload {
         message_id: i32,
         successful: bool,
-        data: Vec<u8>,
+        data: Option<Vec<u8>>,
     }
 
     impl ServerBoundPayload for PluginResponsePayload {
         fn handle(&self, listener: &mut dyn IPacketHandler) {
             listener.handle_login_plugin_response(self);
         }
+    }
+
+    impl PluginResponsePayload {
+        pub const BUILDER: ServerBoundPacketBuilder = |mut reader| {
+            let message_id = reader.read_varint();
+            let successful = reader.read_boolean();
+            let data;
+            if successful {
+                data = Some(reader.read_byte_vec(reader.remaining()));
+            } else {
+                data = None;
+            }
+            Some(Box::new(Self {
+                message_id,
+                successful,
+                data,
+            }))
+        };
     }
 }
 
