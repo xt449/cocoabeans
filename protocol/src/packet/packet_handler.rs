@@ -1,6 +1,6 @@
-use extensions::{VarIntRead, VarIntWrite};
+use crate::data::io::{ReadVarIntExt, WriteVarIntExt};
 use serde_json::json;
-use std::io::{Error, ErrorKind, Read, Write};
+use std::io::{Error, ErrorKind, Read, Take, Write};
 use std::net::TcpStream;
 use std::ops::Deref;
 
@@ -160,12 +160,12 @@ impl<'a> PacketHandler<'a> {
                 .join(" ")
         );
 
-        let mut buffer = MinecraftReader::from(buffer.to_slice());
-        println!(
-            "DEBUG id: {}, string: {}",
-            buffer.read_unsigned_byte(),
-            buffer.read_utf()
-        );
+        // let mut buffer = MinecraftReader::from(buffer.to_slice());
+        // println!(
+        //     "DEBUG id: {}, string: {}",
+        //     buffer.read_unsigned_byte()?,
+        //     buffer.read_string()?
+        // );
 
         self.stream.write_varint(bytes.len() as i32).unwrap();
         self.stream.write_all(bytes.deref()).unwrap();
@@ -194,15 +194,11 @@ impl<'a> PacketHandler<'a> {
             }
         }
 
-        let mut vec = Vec::<u8>::with_capacity(length as usize);
-        (&self.stream)
-            .take(length as u64)
-            .read_to_end(&mut vec)
-            .expect("Error reading from Take of TcpStream");
+        let taken = (&self.stream).take(length as u64);
 
         let packet_data = match self.encryption {
-            None => MinecraftReader::from(vec.as_slice()),
-            Some(cipher) => PacketHandler::decrypt_packet(cipher, vec),
+            None => MinecraftReader::from(taken),
+            Some(cipher) => PacketHandler::decrypt_packet(cipher, MinecraftReader::from(taken)),
         };
 
         return match self.decode_packet(packet_data) {
@@ -214,14 +210,14 @@ impl<'a> PacketHandler<'a> {
         };
     }
 
-    fn decrypt_packet(cipher: u64, vec: Vec<u8>) -> MinecraftReader {
+    fn decrypt_packet(cipher: u64, mut reader: MinecraftReader) -> MinecraftReader {
         // TODO
-        return MinecraftReader::from(vec.as_slice());
+        return reader;
     }
 
     fn decode_packet(&self, mut reader: MinecraftReader) -> Option<serverbound::ServerBoundPacket> {
         println!("Decoding packet {} bytes long...", reader.remaining());
-        let id = reader.read_varint();
+        let id = reader.read_varint().ok()?;
         println!(
             "Decoding packet id#{} in state {}",
             id,

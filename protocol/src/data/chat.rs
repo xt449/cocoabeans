@@ -1,5 +1,5 @@
+use nbt::lib::Value;
 use serde::{Serialize, Serializer};
-use serde_json::Value;
 
 pub enum Color {
     Black,
@@ -106,14 +106,14 @@ impl Serialize for HoverAction {
 pub struct HoverItem {
     id: String,
     count: Option<u8>,
-    tag: Value, // TODO: NBT
+    tag: Value,
 }
 
 #[derive(Serialize)]
 pub struct HoverEntity {
     name: Option<ChatComponent>,
     r#type: String,
-    id: String, // TODO: UUID
+    id: String, // This is a UUID
 }
 
 #[derive(Serialize)]

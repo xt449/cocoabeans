@@ -1,14 +1,12 @@
 use blocks::BlockState;
+use math::coordinate::Position;
 use nbt::lib::Value;
 use std::collections::HashMap;
 use std::ops::Deref;
 
 use crate::data::chat::ChatComponent;
-use crate::data::direction::Direction;
 use crate::data::item_stack::ItemStack;
 use crate::data::particle::Particle;
-use crate::data::pose::Pose;
-use crate::data::position::Position;
 use crate::data::rotation::Rotation;
 use crate::data::villager_data::VillagerData;
 use crate::io::{MinecraftWritable, MinecraftWriter};
@@ -31,14 +29,14 @@ pub enum Data {
     Rotation(Rotation),
     Position(Position),
     OptionPosition(Option<Position>),
-    Direction(Direction),
+    Direction(i32 /*VarInt*/),
     OptionUUID(Option<u128>),
     BlockState(Box<dyn BlockState>),
     NBT(Value),
     Particle(Particle),
     VillagerData(VillagerData),
     OptionVarInt(i32),
-    Pose(Pose),
+    Pose(i32 /*VarInt*/),
 }
 
 impl Data {
@@ -89,8 +87,8 @@ impl MinecraftWritable for EntityMetadata {
                 Data::ItemStack(v) => writer.write(v),
                 Data::Boolean(v) => writer.write_boolean(*v),
                 Data::Rotation(v) => writer.write(v),
-                Data::Position(v) => writer.write(v),
-                Data::OptionPosition(v) => writer.write_option(v),
+                Data::Position(v) => {}       /*writer.write(v)*/,// TODO
+                Data::OptionPosition(v) => {} /*writer.write_option(v)*/,// TODO
                 Data::Direction(v) => writer.write_varint(v.clone() as usize as i32),
                 Data::OptionUUID(v) => {
                     if let Some(v) = v {

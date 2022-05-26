@@ -2,9 +2,9 @@ use registries::particle_type::ParticleTypeRegistry;
 use std::ops::Deref;
 
 use blocks::BlockState;
+use math::coordinate::BlockPosition;
 
 use crate::data::item_stack::ItemStack;
-use crate::data::position::Position;
 use crate::io::{MinecraftWritable, MinecraftWriter};
 
 pub enum Particle {
@@ -24,12 +24,12 @@ pub enum Particle {
     },
     ItemParticle(ItemStack),
     BlockVibrationParticle {
-        origin: Position,
-        block_position: Position,
+        origin: BlockPosition,
+        block_position: BlockPosition,
         ticks: u32,
     },
     EntityVibrationParticle {
-        origin: Position,
+        origin: BlockPosition,
         entity_id: i32,
         ticks: u32,
     },
@@ -93,9 +93,9 @@ impl MinecraftWritable for Particle {
                 block_position,
                 ticks,
             } => {
-                writer.write(origin);
+                // writer.write(origin);// TODO
                 writer.write_utf(VIBRATION_BLOCK);
-                writer.write(block_position);
+                // writer.write(block_position);// TODO
                 writer.write_varint(*ticks as i32);
             }
             Particle::EntityVibrationParticle {
@@ -103,7 +103,7 @@ impl MinecraftWritable for Particle {
                 entity_id,
                 ticks,
             } => {
-                writer.write(origin);
+                // writer.write(origin);// TODO
                 writer.write_utf(VIBRATION_ENTITY);
                 writer.write_varint(*entity_id);
                 writer.write_varint(*ticks as i32);

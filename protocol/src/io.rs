@@ -1,21 +1,20 @@
-use std::io::{Read, Write};
-
+use byteorder::{NetworkEndian, ReadBytesExt};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
-use serde::de::DeserializeOwned;
-use serde::Serialize;
-
 use nbt::lib::Value;
+use serde::Serialize;
+use std::io::{Error, ErrorKind, Read, Take, Write};
+use std::net::TcpStream;
 
 pub trait MinecraftReadable<T> {
-    fn deserialize_from(reader: &mut MinecraftReader) -> Result<T, ()>;
+    fn deserialize_from(reader: &mut MinecraftReader) -> std::io::Result<T>;
 }
 
 pub trait MinecraftWritable {
     fn serialize_to(&self, writer: &mut MinecraftWriter);
 }
 
-pub struct MinecraftReader {
-    buf: Bytes,
+pub struct MinecraftReader<'t> {
+    taken: Take<&'t TcpStream>,
 }
 
 pub struct MinecraftWriter {
@@ -28,24 +27,18 @@ pub struct MinecraftBuffer {
 }
 
 // Constructor
-impl MinecraftReader {
-    pub fn from(slice: &[u8]) -> MinecraftReader {
-        return MinecraftReader {
-            buf: Bytes::copy_from_slice(slice),
-        };
+impl MinecraftReader<'_> {
+    pub fn from(take: Take<&TcpStream>) -> MinecraftReader {
+        return MinecraftReader { taken: take };
     }
 
-    pub fn new() -> MinecraftReader {
-        return MinecraftReader { buf: Bytes::new() };
-    }
+    pub fn take_from(read: &TcpStream, size: u64) -> std::io::Result<MinecraftReader> {
+        let take = read.take(size);
+        if take.limit() < size {
+            return Err(todo!());
+        }
 
-    pub fn read_from(read: &mut dyn Read, size: usize) -> MinecraftReader {
-        let mut vec_backing = Vec::<u8>::with_capacity(size);
-        let slice: &mut [u8] = vec_backing.as_mut_slice();
-        read.read_exact(slice).expect("MinecraftReader::read_from");
-        return MinecraftReader {
-            buf: Bytes::copy_from_slice(slice),
-        };
+        return Ok(MinecraftReader { taken: take });
     }
 }
 
@@ -104,126 +97,148 @@ const SEGMENT_BITS: u8 = 0x7F;
 const CONTINUE_BIT: u8 = 0x80;
 
 // Reader
-impl MinecraftReader {
-    // Take
-    pub fn take(self, length: usize) -> MinecraftReader {
-        return MinecraftReader {
-            buf: self.buf.take(length).into_inner(),
-        };
-    }
-
+impl MinecraftReader<'_> {
     // Check remining packet length
-    pub fn remaining(&self) -> usize {
-        return self.buf.remaining();
+    pub fn remaining(&self) -> u64 {
+        return self.taken.limit();
     }
 
     // VarInt Special
-    pub fn read_varint(&mut self) -> i32 {
+    pub fn read_varint(&mut self) -> std::io::Result<i32> {
         let mut value: i32 = 0;
         let mut position: i32 = 0;
 
         loop {
-            let current_byte = self.read_unsigned_byte();
+            let current_byte = self.taken.read_u8()?;
             value |= ((current_byte & SEGMENT_BITS) as i32) << position;
 
             if (current_byte & CONTINUE_BIT) == 0 {
-                return value;
+                return Ok(value);
             }
 
             position += 7;
 
             if position >= 32 {
-                // Too big
-                return value;
+                return Err(todo!());
             }
         }
     }
 
     // VarLong Special
-    pub fn read_varlong(&mut self) -> i64 {
+    pub fn read_varlong(&mut self) -> std::io::Result<i64> {
         let mut value: i64 = 0;
         let mut position: i32 = 0;
 
         loop {
-            let current_byte = self.read_unsigned_byte();
+            let current_byte = self.taken.read_u8()?;
             value |= ((current_byte & SEGMENT_BITS) as i64) << position;
 
             if (current_byte & CONTINUE_BIT) == 0 {
-                return value;
+                return Ok(value);
             }
 
             position += 7;
 
             if position >= 64 {
-                // Too big
-                return value;
+                return Err(todo!());
             }
         }
     }
 
-    pub fn read_boolean(&mut self) -> bool {
-        return self.buf.get_u8() != 0;
+    pub fn read_boolean(&mut self) -> std::io::Result<bool> {
+        return Ok(self.taken.read_u8()? != 0);
     }
 
-    pub fn read_byte(&mut self) -> i8 {
-        return self.buf.get_i8();
+    pub fn read_byte(&mut self) -> std::io::Result<i8> {
+        return self.taken.read_i8();
     }
 
-    pub fn read_unsigned_byte(&mut self) -> u8 {
-        return self.buf.get_u8();
+    pub fn read_unsigned_byte(&mut self) -> std::io::Result<u8> {
+        return self.taken.read_u8();
     }
 
-    pub fn read_short(&mut self) -> i16 {
-        return self.buf.get_i16();
+    pub fn read_short(&mut self) -> std::io::Result<i16> {
+        return self.taken.read_i16::<NetworkEndian>();
     }
 
-    pub fn read_unsigned_short(&mut self) -> u16 {
-        return self.buf.get_u16();
+    pub fn read_unsigned_short(&mut self) -> std::io::Result<u16> {
+        return self.taken.read_u16::<NetworkEndian>();
     }
 
-    pub fn read_int(&mut self) -> i32 {
-        return self.buf.get_i32();
+    pub fn read_int(&mut self) -> std::io::Result<i32> {
+        return self.taken.read_i32::<NetworkEndian>();
     }
 
-    pub fn read_long(&mut self) -> i64 {
-        return self.buf.get_i64();
+    pub fn read_long(&mut self) -> std::io::Result<i64> {
+        return self.taken.read_i64::<NetworkEndian>();
     }
 
-    pub fn read_float(&mut self) -> f32 {
-        return self.buf.get_f32();
+    pub fn read_float(&mut self) -> std::io::Result<f32> {
+        return self.taken.read_f32::<NetworkEndian>();
     }
 
-    pub fn read_double(&mut self) -> f64 {
-        return self.buf.get_f64();
+    pub fn read_double(&mut self) -> std::io::Result<f64> {
+        return self.taken.read_f64::<NetworkEndian>();
     }
 
-    pub fn read_utf(&mut self) -> String {
-        let length: i32 = self.read_varint();
-        return String::from_utf8(self.buf.copy_to_bytes(length as usize).to_vec()).unwrap();
+    pub fn read_string(&mut self) -> std::io::Result<String> {
+        let length = self.read_varint()? as u64;
+
+        let mut take = self.taken.by_ref().take(length);
+        if take.limit() < length {
+            return Err(Error::new(ErrorKind::InvalidData, "Read too short"));
+        }
+
+        let mut buf = Vec::with_capacity(length as usize);
+        take.read_to_end(&mut buf)?;
+
+        return Ok(String::from_utf8(buf)
+            .map_err(|_| Error::new(ErrorKind::InvalidData, "String had invalid UTF8 format"))?);
     }
 
-    pub fn read_json<T: DeserializeOwned>(&mut self) -> T {
-        return serde_json::from_str::<T>(self.read_utf().as_str()).unwrap();
+    pub fn read_limited_string(&mut self, size: u64) -> std::io::Result<String> {
+        let length = self.read_varint()? as u64;
+        if length > size {
+            return Err(Error::new(ErrorKind::InvalidData, "String too long"));
+        }
+
+        let mut take = self.taken.by_ref().take(length);
+        if take.limit() < length {
+            return Err(Error::new(ErrorKind::InvalidData, "Read too short"));
+        }
+
+        let mut buf = Vec::with_capacity(length as usize);
+        take.read_to_end(&mut buf)?;
+
+        return Ok(String::from_utf8(buf)
+            .map_err(|_| Error::new(ErrorKind::InvalidData, "String had invalid UTF8 format"))?);
     }
 
-    pub fn read_uuid(&mut self) -> u128 {
-        return self.buf.get_u128();
+    // pub fn read_json<T: DeserializeOwned>(&mut self) -> T {
+    //     return serde_json::from_str::<T>(self.read_utf().as_str()).unwrap();
+    // }
+
+    pub fn read_uuid(&mut self) -> std::io::Result<u128> {
+        return self.taken.read_u128::<NetworkEndian>();
     }
 
-    pub fn read_byte_vec(&mut self, length: usize) -> Vec<u8> {
-        return self.buf.copy_to_bytes(length).to_vec();
+    pub fn read_byte_vec(&mut self, size: u64) -> std::io::Result<Vec<u8>> {
+        let mut take = self.taken.by_ref().take(size);
+        if take.limit() < size {
+            return Err(todo!());
+        }
+
+        let mut vec = Vec::with_capacity(size as usize);
+        take.read_to_end(&mut vec)?;
+        return Ok(vec);
     }
 
-    pub fn read_bytes(&mut self, length: usize) -> Bytes {
-        return self.buf.copy_to_bytes(length);
-    }
-
-    pub fn read<T: MinecraftReadable<T>>(&mut self) -> Result<T, ()> {
+    pub fn read<T: MinecraftReadable<T>>(&mut self) -> std::io::Result<T> {
         return T::deserialize_from(self);
     }
 
-    pub fn read_option<T: MinecraftReadable<T>>(&mut self) -> Result<Option<T>, ()> {
-        return if self.read_boolean() {
+    pub fn read_option<T: MinecraftReadable<T>>(&mut self) -> std::io::Result<Option<T>> {
+        return if self.read_boolean()? {
             T::deserialize_from(self).map(|v| Some(v))
         } else {
             Ok(None)
@@ -231,12 +246,12 @@ impl MinecraftReader {
     }
 }
 
-impl Read for MinecraftReader {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        self.buf.copy_to_slice(buf);
-        return Ok(buf.len());
-    }
-}
+// impl Read for MinecraftReader<'_> {
+//     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+//         self.take.copy_to_slice(buf);
+//         return Ok(buf.len());
+//     }
+// }
 
 // Writer
 impl MinecraftWriter {
@@ -364,11 +379,13 @@ impl Write for MinecraftWriter {
 // Readable/Writable extras
 
 impl MinecraftReadable<Value> for Value {
-    fn deserialize_from(reader: &mut MinecraftReader) -> Result<Value, ()> {
-        if let Ok(value) = Value::from_reader(/*hard coded compound id*/ 0x0a, reader) {
+    fn deserialize_from(reader: &mut MinecraftReader) -> std::io::Result<Value> {
+        if let Ok(value) =
+            Value::from_reader(/*hard coded compound id*/ 0x0a, &mut reader.taken)
+        {
             return Ok(value);
         }
-        return Err(());
+        return Err(todo!());
     }
 }
 

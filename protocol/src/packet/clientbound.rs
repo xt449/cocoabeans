@@ -13,17 +13,12 @@ pub mod status {
     use serde_json::Value;
 
     use crate::io::MinecraftWriter;
-    use crate::packet::Packet;
     use crate::version::ProtocolVersion;
 
     use super::ClientBoundPacket;
 
     pub struct ResponsePacket {
         pub json_payload: Value,
-    }
-
-    impl Packet for ResponsePacket {
-        const ID: u8 = 0x00;
     }
 
     impl ClientBoundPacket for ResponsePacket {
@@ -35,10 +30,6 @@ pub mod status {
 
     pub struct PongPacket {
         pub payload: i64,
-    }
-
-    impl Packet for PongPacket {
-        const ID: u8 = 0x01;
     }
 
     impl ClientBoundPacket for PongPacket {
@@ -55,15 +46,10 @@ pub mod login {
     use crate::data::identifier::Identifier;
     use crate::io::MinecraftWriter;
     use crate::packet::clientbound::ClientBoundPacket;
-    use crate::packet::Packet;
     use crate::version::ProtocolVersion;
 
     pub struct DisconnectPacket {
         pub json_chat: Value,
-    }
-
-    impl Packet for DisconnectPacket {
-        const ID: u8 = 0x00;
     }
 
     impl ClientBoundPacket for DisconnectPacket {
@@ -77,10 +63,6 @@ pub mod login {
         pub server_id: String,
         pub key: Vec<u8>,
         pub verification_token: Vec<u8>,
-    }
-
-    impl Packet for EncryptionRequestPacket {
-        const ID: u8 = 0x01;
     }
 
     impl ClientBoundPacket for EncryptionRequestPacket {
@@ -97,10 +79,6 @@ pub mod login {
         pub username: String,
     }
 
-    impl Packet for SuccessPacket {
-        const ID: u8 = 0x02;
-    }
-
     impl ClientBoundPacket for SuccessPacket {
         fn write_to(&self, stream: &mut MinecraftWriter, protocol_version: &dyn ProtocolVersion) {
             stream.write_unsigned_byte(protocol_version.get_status_pong_id());
@@ -111,10 +89,6 @@ pub mod login {
 
     pub struct SetCompressionPacket {
         pub compression_threshold: i32,
-    }
-
-    impl Packet for SetCompressionPacket {
-        const ID: u8 = 0x03;
     }
 
     impl ClientBoundPacket for SetCompressionPacket {
@@ -128,10 +102,6 @@ pub mod login {
         pub message_id: i32,
         pub identifier: Identifier,
         pub data: Vec<u8>,
-    }
-
-    impl Packet for PluginRequestPacket {
-        const ID: u8 = 0x04;
     }
 
     impl ClientBoundPacket for PluginRequestPacket {

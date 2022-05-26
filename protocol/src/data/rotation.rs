@@ -7,11 +7,11 @@ pub struct Rotation {
 }
 
 impl MinecraftReadable<Self> for Rotation {
-    fn deserialize_from(reader: &mut MinecraftReader) -> Result<Self, ()> {
+    fn deserialize_from(reader: &mut MinecraftReader) -> std::io::Result<Self> {
         return Ok(Rotation {
-            x: reader.read_float(),
-            y: reader.read_float(),
-            z: reader.read_float(),
+            x: reader.read_float()?,
+            y: reader.read_float()?,
+            z: reader.read_float()?,
         });
     }
 }

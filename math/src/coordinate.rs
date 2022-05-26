@@ -1,7 +1,7 @@
-pub struct IntPosition {
-    pub x: i64,
-    pub y: i64,
-    pub z: i64,
+pub struct BlockPosition {
+    pub x: i32,
+    pub y: i16,
+    pub z: i32,
 }
 
 pub struct Position {
@@ -10,18 +10,18 @@ pub struct Position {
     pub z: f64,
 }
 
-impl From<Position> for IntPosition {
+impl From<Position> for BlockPosition {
     fn from(other: Position) -> Self {
-        return IntPosition {
-            x: other.x as i64,
-            y: other.y as i64,
-            z: other.z as i64,
+        return BlockPosition {
+            x: other.x as i32,
+            y: other.y as i16,
+            z: other.z as i32,
         };
     }
 }
 
-impl From<IntPosition> for Position {
-    fn from(other: IntPosition) -> Self {
+impl From<BlockPosition> for Position {
+    fn from(other: BlockPosition) -> Self {
         return Position {
             x: other.x as f64,
             y: other.y as f64,

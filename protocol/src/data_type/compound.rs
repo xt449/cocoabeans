@@ -1,11 +1,11 @@
+use crate::data::io::{ReadVarIntExt, WriteVarIntExt};
 use crate::data_type::ProtocolDataType;
-use extensions::{VarIntRead, VarIntWrite};
 use std::io::{Error, ErrorKind, Read, Result, Write};
 
-pub struct SizedString<'t, const N: usize>(&'t str);
+pub struct SizedString<const N: usize>(String);
 
-impl<const N: usize> ProtocolDataType<String> for SizedString<'_, N> {
-    fn read(read: &mut dyn Read) -> Result<Self> {
+impl<const N: usize> ProtocolDataType<String> for SizedString<N> {
+    fn read(mut read: &mut dyn Read) -> Result<Self> {
         let length = read.read_varint()? as usize;
         if length > N {
             return Err(Error::new(ErrorKind::InvalidData, "String too long"));
@@ -14,14 +14,12 @@ impl<const N: usize> ProtocolDataType<String> for SizedString<'_, N> {
         let mut buf = Vec::with_capacity(length);
         read.take(length as u64).read_to_end(&mut buf)?;
 
-        return Ok(Self(
-            String::from_utf8(buf)
-                .map_err(|_| Error::new(ErrorKind::InvalidData, "String had invalid UTF8 format"))?
-                .as_str(),
-        ));
+        return Ok(Self(String::from_utf8(buf).map_err(|_| {
+            Error::new(ErrorKind::InvalidData, "String had invalid UTF8 format")
+        })?));
     }
 
-    fn write(&self, write: &mut dyn Write) -> Result<()> {
+    fn write(&self, mut write: &mut dyn Write) -> Result<()> {
         let bytes = self.0.as_bytes();
         write.write_varint(bytes.len() as i32)?;
         return write.write_all(bytes);

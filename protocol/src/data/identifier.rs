@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use std::io::{Error, ErrorKind};
 
 use crate::io::{MinecraftReadable, MinecraftReader, MinecraftWritable, MinecraftWriter};
 
@@ -20,7 +21,7 @@ impl Identifier {
             key: key.to_owned(),
         };
     }
-    pub fn from_format(identifier: String) -> Result<Self, ()> {
+    pub fn from_format(identifier: String) -> std::io::Result<Self> {
         let split = identifier.split(':').collect::<Vec<&str>>();
         if split.len() == 2 {
             return Ok(Identifier {
@@ -28,7 +29,10 @@ impl Identifier {
                 key: split[1].to_owned(),
             });
         }
-        return Err(());
+        return Err(Error::new(
+            ErrorKind::InvalidData,
+            "Could not split identifer into 2 distince parts",
+        ));
     }
 }
 
@@ -39,8 +43,8 @@ impl Display for Identifier {
 }
 
 impl MinecraftReadable<Self> for Identifier {
-    fn deserialize_from(reader: &mut MinecraftReader) -> Result<Self, ()> {
-        return Self::from_format(reader.read_utf());
+    fn deserialize_from(reader: &mut MinecraftReader) -> std::io::Result<Self> {
+        return Self::from_format(reader.read_string()?);
     }
 }
 
