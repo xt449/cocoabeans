@@ -1,4 +1,5 @@
-use std::io::{Read, Write};
+use std::io::{Error, ErrorKind, Read, Write};
+use byteorder::{ReadBytesExt, WriteBytesExt};
 
 pub trait ResultToOption<T> {
     fn to_option(self) -> Option<T>;
@@ -36,30 +37,28 @@ pub trait OptionInto<T>: TryInto<T> {
 
 impl<T, U> OptionInto<T> for U where U: TryInto<T> {}
 
+// Variable length "primitives"
+
 const SEGMENT_BITS: u8 = 0x7F;
 const CONTINUE_BIT: u8 = 0x80;
 
-pub trait VarIntRead: UnsignedByteRead {
+pub trait VarIntRead: Read {
     fn read_varint(&mut self) -> std::io::Result<i32> {
         let mut value: i32 = 0;
-        let mut position: i32 = 0;
+        let mut position: u8 = 0;
 
         loop {
-            let current_byte = self.read_unsigned_byte()?;
-            println!(">> Reading varint {}", current_byte);
+            let current_byte = self.read_u8()?;
             value |= ((current_byte & SEGMENT_BITS) as i32) << position;
 
             if (current_byte & CONTINUE_BIT) == 0 {
-                println!(">> Finished varint {}", value);
                 return Ok(value);
             }
 
             position += 7;
 
             if position >= 32 {
-                // Too big
-                println!(">> Overflowed varint {}", value);
-                return Ok(value);
+                return Err(Error::new(ErrorKind::InvalidData, "VarInt is too big"));
             }
         }
     }
@@ -67,25 +66,15 @@ pub trait VarIntRead: UnsignedByteRead {
 
 impl<U> VarIntRead for U where U: Read {}
 
-pub trait UnsignedByteRead: Read {
-    fn read_unsigned_byte(&mut self) -> std::io::Result<u8> {
-        let mut byte_in = [0];
-        self.read_exact(&mut byte_in)?;
-        return Ok(byte_in[0]);
-    }
-}
-
-impl<U> UnsignedByteRead for U where U: Read {}
-
-pub trait VarIntWrite: UnsignedByteWrite {
+pub trait VarIntWrite: Write {
     fn write_varint(&mut self, mut value: i32) -> std::io::Result<()> {
         loop {
             if (value & !SEGMENT_BITS as i32) == 0 {
-                self.write_unsigned_byte(value as u8)?;
+                self.write_u8(value as u8)?;
                 return Ok(());
             }
 
-            self.write_unsigned_byte(((value & SEGMENT_BITS as i32) | CONTINUE_BIT as i32) as u8)?;
+            self.write_u8(((value & SEGMENT_BITS as i32) | CONTINUE_BIT as i32) as u8)?;
 
             value >>= 7;
         }
@@ -94,10 +83,44 @@ pub trait VarIntWrite: UnsignedByteWrite {
 
 impl<U> VarIntWrite for U where U: Write {}
 
-pub trait UnsignedByteWrite: Write {
-    fn write_unsigned_byte(&mut self, value: u8) -> std::io::Result<usize> {
-        return self.write(&[value]);
+pub trait VarLongRead: Read {
+    fn read_varlong(&mut self) -> std::io::Result<i64> {
+        let mut value: i64 = 0;
+        let mut position: u8 = 0;
+
+        loop {
+            let current_byte = self.read_u8()?;
+            value |= ((current_byte & SEGMENT_BITS) as i64) << position;
+
+            if (current_byte & CONTINUE_BIT) == 0 {
+                return Ok(value);
+            }
+
+            position += 7;
+
+            if position >= 64 {
+                return Err(Error::new(ErrorKind::InvalidData, "VarLong is too big"));
+            }
+        }
     }
 }
 
-impl<U> UnsignedByteWrite for U where U: Write {}
+impl<U> VarLongRead for U where U: Read {}
+
+pub trait VarLongWrite: Write {
+    fn write_varlong(&mut self, mut value: i64) -> std::io::Result<()> {
+        loop {
+            if (value & !SEGMENT_BITS as i64) == 0 {
+                self.write_u8(value as u8)?;
+                return Ok(());
+            }
+
+            self.write_u8(((value & SEGMENT_BITS as i64) | CONTINUE_BIT as i64) as u8)?;
+
+            value >>= 7;
+        }
+    }
+}
+
+impl<U> VarLongWrite for U where U: Write {}
+
