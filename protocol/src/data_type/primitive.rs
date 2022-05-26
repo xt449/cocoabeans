@@ -1,7 +1,7 @@
-use std::io::{Read, Result, Write};
+use crate::data_type::ProtocolDataType;
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use extensions::{VarIntRead, VarIntWrite, VarLongRead, VarLongWrite};
-use crate::data_type::ProtocolDataType;
+use std::io::{Read, Result, Write};
 
 type NetworkOrder = BigEndian;
 

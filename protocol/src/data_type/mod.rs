@@ -1,7 +1,7 @@
 use std::io::{Read, Result, Write};
 
-pub mod primitive;
 pub mod compound;
+pub mod primitive;
 
 pub trait ProtocolDataType<T>: Sized {
     fn read(read: &mut dyn Read) -> Result<Self>;
