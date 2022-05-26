@@ -12,7 +12,10 @@ use crate::packet::serverbound::{handshaking, login, play, status};
 use crate::version::ProtocolVersion;
 use crate::version_manager;
 
+use num_derive::{FromPrimitive, ToPrimitive};
+
 #[derive(Copy, Clone)]
+#[derive(FromPrimitive, ToPrimitive)]
 pub enum State {
     HANDSHAKING = -1,
     PLAY = 0,
@@ -26,20 +29,6 @@ impl State {
             State::STATUS => State::STATUS,
             State::LOGIN => State::LOGIN,
             _ => self,
-        };
-    }
-}
-
-impl TryFrom<i8> for State {
-    type Error = ();
-
-    fn try_from(value: i8) -> Result<Self, Self::Error> {
-        return match value {
-            x if x == State::HANDSHAKING as i8 => Ok(State::HANDSHAKING),
-            x if x == State::STATUS as i8 => Ok(State::STATUS),
-            x if x == State::LOGIN as i8 => Ok(State::LOGIN),
-            x if x == State::PLAY as i8 => Ok(State::PLAY),
-            _ => Err(()),
         };
     }
 }

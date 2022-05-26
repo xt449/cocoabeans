@@ -34,7 +34,7 @@ pub mod handshaking {
                 protocol_version: reader.read_varint().ok()?,
                 address: reader.read_limited_string(255).ok()?,
                 port: reader.read_unsigned_short().ok()?,
-                next_state: State::try_from(reader.read_varint().ok()? as i8).ok()?,
+                next_state: num_traits::FromPrimitive::from_i32(reader.read_varint().ok()?)?,
             }))
         };
     }
