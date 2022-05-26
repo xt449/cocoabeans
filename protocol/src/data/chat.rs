@@ -1,4 +1,4 @@
-use nbt::lib::Value;
+use nbt::Value;
 use serde::{Serialize, Serializer};
 
 pub enum Color {

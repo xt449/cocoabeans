@@ -1,6 +1,6 @@
 use byteorder::{NetworkEndian, ReadBytesExt};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
-use nbt::lib::Value;
+use nbt::Value;
 use serde::Serialize;
 use std::io::{Error, ErrorKind, Read, Take, Write};
 use std::net::TcpStream;

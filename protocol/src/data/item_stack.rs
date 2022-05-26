@@ -1,4 +1,4 @@
-use nbt::lib::Value;
+use nbt::Value;
 use num_traits::FromPrimitive;
 use registries::item::ItemRegistry;
 use std::collections::HashMap;

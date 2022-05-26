@@ -1,6 +1,6 @@
 use blocks::BlockState;
 use math::coordinate::Position;
-use nbt::lib::Value;
+use nbt::Value;
 use std::collections::HashMap;
 use std::ops::Deref;
 

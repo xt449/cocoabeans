@@ -1,6 +1,6 @@
 use crate::data::io::{ReadVarIntExt, WriteVarIntExt};
 use serde_json::json;
-use std::io::{Error, ErrorKind, Read, Take, Write};
+use std::io::{Error, ErrorKind, Read, Write};
 use std::net::TcpStream;
 use std::ops::Deref;
 
@@ -14,8 +14,7 @@ use crate::version_manager;
 
 use num_derive::{FromPrimitive, ToPrimitive};
 
-#[derive(Copy, Clone)]
-#[derive(FromPrimitive, ToPrimitive)]
+#[derive(Copy, Clone, FromPrimitive, ToPrimitive)]
 pub enum State {
     HANDSHAKING = -1,
     PLAY = 0,

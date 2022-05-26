@@ -1,6 +1,6 @@
 use byteorder::{NetworkEndian, ReadBytesExt, WriteBytesExt};
 use math::coordinate::BlockPosition;
-use nbt::lib::Value;
+use nbt::Value;
 use std::io::{Error, ErrorKind, Read, Result, Write};
 
 // Bool
@@ -150,7 +150,7 @@ impl<U> WriteSizedStringExt for U where U: Write {}
 // NBT
 
 trait ReadNBTExt: Read + Sized {
-    fn read_nbt(&mut self) -> nbt::lib::Result<Value> {
+    fn read_nbt(&mut self) -> nbt::Result<Value> {
         return Value::from_reader(/*hard coded compound id*/ 0x0a, self);
     }
 }
@@ -158,7 +158,7 @@ trait ReadNBTExt: Read + Sized {
 impl<U> ReadNBTExt for U where U: Read {}
 
 trait WriteNBTExt: Write + Sized {
-    fn write_nbt(&mut self, value: &Value) -> nbt::lib::Result<()> {
+    fn write_nbt(&mut self, value: &Value) -> nbt::Result<()> {
         return value.to_writer(self);
     }
 }
