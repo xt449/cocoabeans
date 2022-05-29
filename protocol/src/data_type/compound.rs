@@ -14,9 +14,7 @@ impl<const N: usize> ProtocolDataType<String> for SizedString<N> {
         let mut buf = Vec::with_capacity(length);
         read.take(length as u64).read_to_end(&mut buf)?;
 
-        return Ok(Self(String::from_utf8(buf).map_err(|_| {
-            Error::new(ErrorKind::InvalidData, "String had invalid UTF8 format")
-        })?));
+        return Ok(Self(String::from_utf8(buf).map_err(|_| Error::new(ErrorKind::InvalidData, "String had invalid UTF8 format"))?));
     }
 
     fn write(&self, mut write: &mut dyn Write) -> Result<()> {

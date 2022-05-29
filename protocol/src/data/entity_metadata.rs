@@ -98,9 +98,7 @@ impl MinecraftWritable for EntityMetadata {
                         writer.write_boolean(false);
                     }
                 }
-                Data::BlockState(v) => {
-                    writer.write_varint(blocks::get_id_from_blockstate(v.deref()) as i32)
-                }
+                Data::BlockState(v) => writer.write_varint(blocks::get_id_from_blockstate(v.deref()) as i32),
                 Data::NBT(v) => writer.write(v),
                 Data::Particle(v) => writer.write(v),
                 Data::VillagerData(v) => writer.write(v),

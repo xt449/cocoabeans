@@ -9,7 +9,7 @@ use crate::io::{MinecraftReadable, MinecraftReader, MinecraftWritable, Minecraft
 pub struct ItemStack {
     pub count: u8,
     pub id: ItemRegistry,
-    pub nbt: Option<Value>,
+    pub nbt: Value,
 }
 
 impl ItemStack {
@@ -17,7 +17,7 @@ impl ItemStack {
         return ItemStack {
             count: 0,
             id: ItemRegistry::air,
-            nbt: None,
+            nbt: Value::Compound(HashMap::new()),
         };
     }
 
@@ -38,27 +38,13 @@ impl ItemStack {
     // }
 }
 
-impl ItemStack {
-    pub fn init_nbt(&mut self) {
-        if let None = self.nbt {
-            self.nbt = Some(Value::Compound(HashMap::new()));
-        }
-    }
-
-    pub fn get_nbt(&self) -> &Option<Value> {
-        return &self.nbt;
-    }
-}
-
 impl MinecraftReadable<Self> for ItemStack {
     fn deserialize_from(reader: &mut MinecraftReader) -> std::io::Result<Self> {
         let no_empty = reader.read_boolean()?;
         return if no_empty {
-            let id: ItemRegistry = FromPrimitive::from_i32(reader.read_varint()?).ok_or(
-                Error::new(ErrorKind::InvalidInput, "Can not convert from primitive"),
-            )?;
+            let id: ItemRegistry = FromPrimitive::from_i32(reader.read_varint()?).ok_or(Error::new(ErrorKind::InvalidInput, "Can not convert from primitive"))?;
             let count = reader.read_unsigned_byte()?;
-            let nbt = reader.read_option::<Value>()?;
+            let nbt = reader.read::<Value>()?;
 
             Ok(ItemStack { count, id, nbt })
         } else {

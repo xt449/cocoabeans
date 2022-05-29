@@ -1,4 +1,9 @@
+use std::io::Write;
 
+pub trait Packet {
+    fn write_to<T: Write>(&self, write: &mut T);
+}
+/*
 // Handshaking
 
 // Status
@@ -106,3 +111,4 @@ pub struct PlaySculkVibrationSignalPacket {
 pub struct PlayPacket {
     pub entity_id: u32,
 }
+*/

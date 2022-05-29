@@ -6,3 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+blocks = { path = "../../cocoabeans-generators/out/blocks" }
+registries = { path = "../../cocoabeans-generators/out/registries" }
+# should only depend on the data structs in protocol
+protocol = { path = "../protocol" }
+math = { path = "../math" }
+
+hematite-nbt = "0.5.2"
+byteorder = "1.4.3"
+num-traits = "0.2.15"
+num-derive = "0.3.3"

@@ -71,11 +71,7 @@ pub mod status {
     }
 
     impl PingPayload {
-        pub const BUILDER: ServerBoundPacketBuilder = |mut reader| {
-            Some(Box::new(Self {
-                payload: reader.read_long().ok()?,
-            }))
-        };
+        pub const BUILDER: ServerBoundPacketBuilder = |mut reader| Some(Box::new(Self { payload: reader.read_long().ok()? }));
     }
 }
 
@@ -120,10 +116,7 @@ pub mod login {
             let secret = reader.read_byte_vec(length).ok()?;
             let length = reader.read_varint().ok()? as u64;
             let verification_token = reader.read_byte_vec(length).ok()?;
-            Some(Box::new(Self {
-                secret,
-                verification_token,
-            }))
+            Some(Box::new(Self { secret, verification_token }))
         };
     }
 
@@ -149,11 +142,7 @@ pub mod login {
             } else {
                 data = None;
             }
-            Some(Box::new(Self {
-                message_id,
-                successful,
-                data,
-            }))
+            Some(Box::new(Self { message_id, successful, data }))
         };
     }
 }
@@ -586,7 +575,7 @@ pub mod play {
     }
 
     pub struct SetBeaconEffectPayload {
-        pub primary_effect: registries::potion::PotionRegistry, // VARINT
+        pub primary_effect: registries::potion::PotionRegistry,   // VARINT
         pub secondary_effect: registries::potion::PotionRegistry, // VARINT
     }
 

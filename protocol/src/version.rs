@@ -25,9 +25,5 @@ pub trait PacketIdentifier {
 
 // Incoming (ServerBound)
 pub trait PacketBuilderManager {
-    fn get_packet_builder_from_id(
-        &self,
-        connection_state: State,
-        packet_id: u8,
-    ) -> Option<ServerBoundPacketBuilder>;
+    fn get_packet_builder_from_id(&self, connection_state: State, packet_id: u8) -> Option<ServerBoundPacketBuilder>;
 }

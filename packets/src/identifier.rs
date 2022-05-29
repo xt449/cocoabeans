@@ -113,6 +113,4 @@ mod clientbound {
     const PLAY_TAGS_PACKET: u8 = 0x67;
 }
 
-mod serverbound {
-
-}
+mod serverbound {}

@@ -45,51 +45,37 @@ impl MinecraftReader<'_> {
 // Constructor
 impl MinecraftWriter {
     pub fn from(slice: &[u8]) -> MinecraftWriter {
-        return MinecraftWriter {
-            buf: BytesMut::from(slice),
-        };
+        return MinecraftWriter { buf: BytesMut::from(slice) };
     }
 
     pub fn new() -> MinecraftWriter {
-        return MinecraftWriter {
-            buf: BytesMut::new(),
-        };
+        return MinecraftWriter { buf: BytesMut::new() };
     }
 
     pub fn with_capacity(size: usize) -> MinecraftWriter {
-        return MinecraftWriter {
-            buf: BytesMut::with_capacity(size),
-        };
+        return MinecraftWriter { buf: BytesMut::with_capacity(size) };
     }
 }
 
 // Constructor
 impl MinecraftBuffer {
     pub fn from(slice: &[u8]) -> MinecraftBuffer {
-        return MinecraftBuffer {
-            buf: BytesMut::from(slice),
-        };
+        return MinecraftBuffer { buf: BytesMut::from(slice) };
     }
 
     pub fn new() -> MinecraftBuffer {
-        return MinecraftBuffer {
-            buf: BytesMut::new(),
-        };
+        return MinecraftBuffer { buf: BytesMut::new() };
     }
 
     pub fn with_capacity(size: usize) -> MinecraftBuffer {
-        return MinecraftBuffer {
-            buf: BytesMut::with_capacity(size),
-        };
+        return MinecraftBuffer { buf: BytesMut::with_capacity(size) };
     }
 
     pub fn copy_from(read: &mut dyn Read, size: usize) -> MinecraftBuffer {
         let mut vec_backing = Vec::<u8>::with_capacity(size);
         let slice: &mut [u8] = vec_backing.as_mut_slice();
         read.read_exact(slice).expect("MinecraftBuffer::copy_from");
-        return MinecraftBuffer {
-            buf: BytesMut::from(&slice[..]),
-        };
+        return MinecraftBuffer { buf: BytesMut::from(&slice[..]) };
     }
 }
 
@@ -192,8 +178,7 @@ impl MinecraftReader<'_> {
         let mut buf = Vec::with_capacity(length as usize);
         take.read_to_end(&mut buf)?;
 
-        return Ok(String::from_utf8(buf)
-            .map_err(|_| Error::new(ErrorKind::InvalidData, "String had invalid UTF8 format"))?);
+        return Ok(String::from_utf8(buf).map_err(|_| Error::new(ErrorKind::InvalidData, "String had invalid UTF8 format"))?);
     }
 
     pub fn read_limited_string(&mut self, size: u64) -> std::io::Result<String> {
@@ -210,8 +195,7 @@ impl MinecraftReader<'_> {
         let mut buf = Vec::with_capacity(length as usize);
         take.read_to_end(&mut buf)?;
 
-        return Ok(String::from_utf8(buf)
-            .map_err(|_| Error::new(ErrorKind::InvalidData, "String had invalid UTF8 format"))?);
+        return Ok(String::from_utf8(buf).map_err(|_| Error::new(ErrorKind::InvalidData, "String had invalid UTF8 format"))?);
     }
 
     // pub fn read_json<T: DeserializeOwned>(&mut self) -> T {
@@ -238,11 +222,7 @@ impl MinecraftReader<'_> {
     }
 
     pub fn read_option<T: MinecraftReadable<T>>(&mut self) -> std::io::Result<Option<T>> {
-        return if self.read_boolean()? {
-            T::deserialize_from(self).map(|v| Some(v))
-        } else {
-            Ok(None)
-        };
+        return if self.read_boolean()? { T::deserialize_from(self).map(|v| Some(v)) } else { Ok(None) };
     }
 }
 
@@ -380,9 +360,7 @@ impl Write for MinecraftWriter {
 
 impl MinecraftReadable<Value> for Value {
     fn deserialize_from(reader: &mut MinecraftReader) -> std::io::Result<Value> {
-        if let Ok(value) =
-            Value::from_reader(/*hard coded compound id*/ 0x0a, &mut reader.taken)
-        {
+        if let Ok(value) = Value::from_reader(/*hard coded compound id*/ 0x0a, &mut reader.taken) {
             return Ok(value);
         }
         return Err(todo!());

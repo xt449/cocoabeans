@@ -30,14 +30,7 @@ impl BoundingBox {
     }
 
     fn new_corner_positions(pos1: &BlockPosition, pos2: &BlockPosition) -> Self {
-        return BoundingBox::new_corners(
-            pos1.x as i64,
-            pos1.y as i64,
-            pos1.z as i64,
-            pos2.x as i64,
-            pos2.y as i64,
-            pos2.z as i64,
-        );
+        return BoundingBox::new_corners(pos1.x as i64, pos1.y as i64, pos1.z as i64, pos2.x as i64, pos2.y as i64, pos2.z as i64);
     }
 }
 
@@ -71,14 +64,7 @@ impl BoundingBox2 {
     }
 
     fn new_corner_positions(pos1: &BlockPosition, pos2: &BlockPosition) -> Self {
-        return BoundingBox2::new_corners(
-            pos1.x as i64,
-            pos1.y as i64,
-            pos1.z as i64,
-            pos2.x as i64,
-            pos2.y as i64,
-            pos2.z as i64,
-        );
+        return BoundingBox2::new_corners(pos1.x as i64, pos1.y as i64, pos1.z as i64, pos2.x as i64, pos2.y as i64, pos2.z as i64);
     }
 }
 

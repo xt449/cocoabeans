@@ -1,4 +1,3 @@
-use crate::data::io::{ReadVarIntExt, WriteVarIntExt};
 use serde_json::json;
 use std::io::{Error, ErrorKind, Read, Write};
 use std::net::TcpStream;
@@ -12,6 +11,7 @@ use crate::packet::serverbound::{handshaking, login, play, status};
 use crate::version::ProtocolVersion;
 use crate::version_manager;
 
+use crate::data::io::{ReadVarIntExt, WriteVarIntExt};
 use num_derive::{FromPrimitive, ToPrimitive};
 
 #[derive(Copy, Clone, FromPrimitive, ToPrimitive)]
@@ -61,10 +61,7 @@ pub trait IPacketHandler {
     fn handle_play_keep_alive(&mut self, payload: &play::KeepAlivePayload);
     fn handle_play_lock_difficulty(&mut self, payload: &play::LockDifficultyPayload);
     fn handle_play_player_position(&mut self, payload: &play::PlayerPositionPayload);
-    fn handle_play_player_position_and_rotation(
-        &mut self,
-        payload: &play::PlayerPositionAndRotationPayload,
-    );
+    fn handle_play_player_position_and_rotation(&mut self, payload: &play::PlayerPositionAndRotationPayload);
     fn handle_play_player_rotation(&mut self, payload: &play::PlayerRotationPayload);
     fn handle_play_player_movement(&mut self, payload: &play::PlayerMovementPayload);
     fn handle_play_vehicle_move(&mut self, payload: &play::VehicleMovePayload);
@@ -85,14 +82,8 @@ pub trait IPacketHandler {
     fn handle_play_set_beacon_effect(&mut self, payload: &play::SetBeaconEffectPayload);
     fn handle_play_held_item_change(&mut self, payload: &play::HeldItemChangePayload);
     fn handle_play_update_command_block(&mut self, payload: &play::UpdateCommandBlockPayload);
-    fn handle_play_update_command_block_minecart(
-        &mut self,
-        payload: &play::UpdateCommandBlockMinecartPayload,
-    );
-    fn handle_play_creative_inventory_action(
-        &mut self,
-        payload: &play::CreativeInventoryActionPayload,
-    );
+    fn handle_play_update_command_block_minecart(&mut self, payload: &play::UpdateCommandBlockMinecartPayload);
+    fn handle_play_creative_inventory_action(&mut self, payload: &play::CreativeInventoryActionPayload);
     fn handle_play_update_jigsaw_block(&mut self, payload: &play::UpdateJigsawBlockPayload);
     fn handle_play_update_structure_block(&mut self, payload: &play::UpdateStructureBlockPayload);
     fn handle_play_update_sign_block(&mut self, payload: &play::UpdateSignBlockPayload);
@@ -113,9 +104,7 @@ pub struct PacketHandler<'a> {
 // Constructor
 impl<'a> PacketHandler<'a> {
     pub fn new(stream: TcpStream) -> PacketHandler<'a> {
-        stream
-            .set_nonblocking(false)
-            .expect("Unable to make TcpStream blocking");
+        stream.set_nonblocking(false).expect("Unable to make TcpStream blocking");
         return PacketHandler {
             stream: stream,
             state: State::HANDSHAKING,
@@ -132,21 +121,10 @@ impl<'a> PacketHandler<'a> {
         let mut buffer = MinecraftWriter::new();
         packet.write_to(&mut buffer, self.protocol_version);
         let bytes = buffer.to_slice();
-        println!(
-            "DEBUG Sending packet #{} with total length {}",
-            bytes[0],
-            bytes.len()
-        );
+        println!("DEBUG Sending packet #{} with total length {}", bytes[0], bytes.len());
 
         //bytes.insert(0, bytes.len() as u8);
-        println!(
-            "DEBUG [ {} ]",
-            bytes
-                .iter()
-                .map(|v| format!("{:02X}", v))
-                .collect::<Vec<String>>()
-                .join(" ")
-        );
+        println!("DEBUG [ {} ]", bytes.iter().map(|v| format!("{:02X}", v)).collect::<Vec<String>>().join(" "));
 
         // let mut buffer = MinecraftReader::from(buffer.to_slice());
         // println!(
@@ -190,10 +168,7 @@ impl<'a> PacketHandler<'a> {
         };
 
         return match self.decode_packet(packet_data) {
-            None => Err(Error::new(
-                ErrorKind::InvalidData,
-                "Unable to decrypt packet",
-            )),
+            None => Err(Error::new(ErrorKind::InvalidData, "Unable to decrypt packet")),
             Some(packet) => Ok(packet),
         };
     }
@@ -216,10 +191,7 @@ impl<'a> PacketHandler<'a> {
                 State::PLAY => "PLAY",
             }
         );
-        return match self
-            .protocol_version
-            .get_packet_builder_from_id(self.state.clone(), id as u8)
-        {
+        return match self.protocol_version.get_packet_builder_from_id(self.state.clone(), id as u8) {
             None => None,
             Some(builder) => builder(reader),
         };
@@ -270,9 +242,7 @@ impl<'a> IPacketHandler for PacketHandler<'a> {
     }
 
     fn handle_status_ping(&mut self, payload: &status::PingPayload) {
-        self.write_packet(clientbound::status::PongPacket {
-            payload: payload.payload,
-        });
+        self.write_packet(clientbound::status::PongPacket { payload: payload.payload });
     }
 
     // Login
@@ -363,10 +333,7 @@ impl<'a> IPacketHandler for PacketHandler<'a> {
         todo!()
     }
 
-    fn handle_play_player_position_and_rotation(
-        &mut self,
-        payload: &play::PlayerPositionAndRotationPayload,
-    ) {
+    fn handle_play_player_position_and_rotation(&mut self, payload: &play::PlayerPositionAndRotationPayload) {
         todo!()
     }
 
@@ -450,17 +417,11 @@ impl<'a> IPacketHandler for PacketHandler<'a> {
         todo!()
     }
 
-    fn handle_play_update_command_block_minecart(
-        &mut self,
-        payload: &play::UpdateCommandBlockMinecartPayload,
-    ) {
+    fn handle_play_update_command_block_minecart(&mut self, payload: &play::UpdateCommandBlockMinecartPayload) {
         todo!()
     }
 
-    fn handle_play_creative_inventory_action(
-        &mut self,
-        payload: &play::CreativeInventoryActionPayload,
-    ) {
+    fn handle_play_creative_inventory_action(&mut self, payload: &play::CreativeInventoryActionPayload) {
         todo!()
     }
 

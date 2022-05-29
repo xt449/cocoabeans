@@ -1,6 +1,10 @@
+use crate::data::identifier::Identifier;
+use crate::data::item_stack::ItemStack;
 use byteorder::{NetworkEndian, ReadBytesExt, WriteBytesExt};
 use math::coordinate::BlockPosition;
 use nbt::Value;
+use num_traits::FromPrimitive;
+use registries::item::ItemRegistry;
 use std::io::{Error, ErrorKind, Read, Result, Write};
 
 // Bool
@@ -11,13 +15,15 @@ pub trait ReadBoolExt: Read {
     }
 }
 
-impl<U> ReadBoolExt for U where U: Read {}
+impl<U> ReadBoolExt for U where U: Read + ?Sized {}
 
 pub trait WriteBoolExt: Write {
     fn write_bool(&mut self, value: bool) -> Result<()> {
         return self.write_u8(value as u8);
     }
 }
+
+impl<U> WriteBoolExt for U where U: Write + ?Sized {}
 
 // constants for the follow variable length "primitives"
 
@@ -26,6 +32,7 @@ const CONTINUE_BIT: u8 = 0x80;
 
 // VarInt
 
+// TODO VarInt count be unsigned?
 pub trait ReadVarIntExt: Read {
     fn read_varint(&mut self) -> Result<i32> {
         let mut value: i32 = 0;
@@ -112,31 +119,30 @@ impl<U> WriteVarLongExt for U where U: Write + ?Sized {}
 
 // String
 
-pub trait ReadSizedStringExt: Read {
-    fn read_sized_string(&mut self, size: usize) -> Result<String> {
+pub trait ReadLimitedStringExt: Read {
+    fn read_limited_string(&mut self, size_max: usize) -> Result<String> {
         let length = self.read_varint()? as usize;
-        if length > size {
+        if length > 32767 || length > size_max {
             return Err(Error::new(ErrorKind::InvalidData, "String too long"));
         }
 
         let mut buf = Vec::with_capacity(length);
         let mut take = self.take(length as u64);
-        if take.limit() < size as u64 {
+        if take.limit() < length as u64 {
             return Err(Error::new(ErrorKind::InvalidData, "Read too short"));
         }
         take.read_to_end(&mut buf)?;
 
-        return Ok(String::from_utf8(buf)
-            .map_err(|_| Error::new(ErrorKind::InvalidData, "String had invalid UTF8 format"))?);
+        return Ok(String::from_utf8(buf).map_err(|_| Error::new(ErrorKind::InvalidData, "String had invalid UTF8 format"))?);
     }
 }
 
-impl<U> ReadSizedStringExt for U where U: Read {}
+impl<U> ReadLimitedStringExt for U where U: Read + ?Sized {}
 
-pub trait WriteSizedStringExt: Write {
-    fn write_sized_string(&mut self, value: &String, size: usize) -> Result<()> {
+pub trait WriteLimitedStringExt: Write {
+    fn write_limited_string(&mut self, value: &String, size_max: usize) -> Result<()> {
         let bytes = value.as_bytes();
-        if bytes.len() > i16::MAX as usize || bytes.len() > size {
+        if bytes.len() > 32767 || bytes.len() > size_max {
             return Err(Error::new(ErrorKind::InvalidData, "String too long"));
         }
 
@@ -145,45 +151,51 @@ pub trait WriteSizedStringExt: Write {
     }
 }
 
-impl<U> WriteSizedStringExt for U where U: Write {}
+impl<U> WriteLimitedStringExt for U where U: Write + ?Sized {}
 
 // NBT
 
-trait ReadNBTExt: Read + Sized {
-    fn read_nbt(&mut self) -> nbt::Result<Value> {
+pub trait ReadNBTExt: Read {
+    fn read_nbt(&mut self) -> nbt::Result<Value>
+    where
+        Self: Sized,
+    {
         return Value::from_reader(/*hard coded compound id*/ 0x0a, self);
     }
 }
 
-impl<U> ReadNBTExt for U where U: Read {}
+impl<U> ReadNBTExt for U where U: Read + ?Sized {}
 
-trait WriteNBTExt: Write + Sized {
-    fn write_nbt(&mut self, value: &Value) -> nbt::Result<()> {
+pub trait WriteNBTExt: Write {
+    fn write_nbt(&mut self, value: &Value) -> nbt::Result<()>
+    where
+        Self: Sized,
+    {
         return value.to_writer(self);
     }
 }
 
-impl<U> WriteNBTExt for U where U: Write {}
+impl<U> WriteNBTExt for U where U: Write + ?Sized {}
 
 // Byte Vec
 
-trait ReadByteVecExt: Read {
-    fn read_byte_vec(&mut self, size: u64) -> Result<Vec<u8>> {
-        let mut take = self.take(size);
-        if take.limit() < size {
+pub trait ReadByteVecExt: Read {
+    fn read_byte_vec(&mut self, size: usize) -> Result<Vec<u8>> {
+        let mut take = self.take(size as u64);
+        if (take.limit() as usize) < size {
             return Err(Error::new(ErrorKind::InvalidData, "Read too short"));
         }
 
-        let mut array = Vec::with_capacity(size as usize);
+        let mut array = Vec::with_capacity(size);
         take.read_to_end(&mut array)?;
 
         return Ok(array);
     }
 }
 
-impl<U> ReadByteVecExt for U where U: Read {}
+impl<U> ReadByteVecExt for U where U: Read + ?Sized {}
 
-trait WriteByteVecExt: Write {
+pub trait WriteByteVecExt: Write {
     fn write_byte_vec(&mut self, value: Vec<u8>, size: usize) -> Result<()> {
         if value.len() > size {
             return Err(Error::new(ErrorKind::InvalidData, "Vec too long"));
@@ -192,11 +204,11 @@ trait WriteByteVecExt: Write {
     }
 }
 
-impl<U> WriteByteVecExt for U where U: Write {}
+impl<U> WriteByteVecExt for U where U: Write + ?Sized {}
 
 // BlockPosition
 
-trait ReadBlockPositionExt: Read {
+pub trait ReadBlockPositionExt: Read {
     fn read_block_position(&mut self) -> Result<BlockPosition> {
         let long = self.read_u64::<NetworkEndian>()?;
         return Ok(BlockPosition {
@@ -207,16 +219,69 @@ trait ReadBlockPositionExt: Read {
     }
 }
 
-impl<U> ReadBlockPositionExt for U where U: Read {}
+impl<U> ReadBlockPositionExt for U where U: Read + ?Sized {}
 
-trait WriteBlockPositionExt: Write {
+pub trait WriteBlockPositionExt: Write {
     fn write_block_position(&mut self, value: &BlockPosition) -> Result<()> {
-        return self.write_u64::<NetworkEndian>(
-            (((value.x & 0x3FFFFFF) as u64) << 38)
-                | (((value.z & 0x3FFFFFF) as u64) << 12)
-                | (value.y & 0xFFF) as u64,
-        );
+        return self.write_u64::<NetworkEndian>((((value.x & 0x3FFFFFF) as u64) << 38) | (((value.z & 0x3FFFFFF) as u64) << 12) | (value.y & 0xFFF) as u64);
     }
 }
 
-impl<U> WriteBlockPositionExt for U where U: Write {}
+impl<U> WriteBlockPositionExt for U where U: Write + ?Sized {}
+
+// ItemStack
+
+pub trait ReadItemStackExt: Read {
+    fn read_item_stack(&mut self) -> Result<ItemStack>
+    where
+        Self: Sized,
+    {
+        let no_empty = self.read_bool()?;
+        return if no_empty {
+            let id: ItemRegistry = FromPrimitive::from_i32(self.read_varint()?).ok_or(Error::new(ErrorKind::InvalidInput, "Can not convert from primitive"))?;
+            let count = self.read_u8()?;
+            let nbt = self.read_nbt()?;
+
+            Ok(ItemStack { count, id, nbt })
+        } else {
+            Ok(ItemStack::empty())
+        };
+    }
+}
+
+impl<U> ReadItemStackExt for U where U: Read + ?Sized {}
+
+pub trait WriteItemStackExt: Write {
+    fn write_item_stack(&mut self, value: &ItemStack) -> Result<()>
+    where
+        Self: Sized,
+    {
+        self.write_bool(value.count > 0)?;
+        if value.count > 0 {
+            self.write_varint(value.id as usize as i32)?;
+            self.write_u8(value.count)?;
+            self.write_nbt(&value.nbt)?;
+        }
+        return Ok(());
+    }
+}
+
+impl<U> WriteItemStackExt for U where U: Write + ?Sized {}
+
+// Identifier
+
+pub trait ReadIdentifierExt: Read {
+    fn read_identifier(&mut self) -> Result<Identifier> {
+        return Identifier::from_format(self.read_limited_string(32767)?);
+    }
+}
+
+impl<U> ReadIdentifierExt for U where U: Read + ?Sized {}
+
+pub trait WriteIdentifierExt: Write {
+    fn write_identifier(&mut self, value: &Identifier) -> Result<()> {
+        return self.write_limited_string(&value.to_string(), 32767);
+    }
+}
+
+impl<U> WriteIdentifierExt for U where U: Write + ?Sized {}

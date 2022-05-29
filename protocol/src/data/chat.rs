@@ -45,9 +45,7 @@ impl Serialize for Color {
             Self::Yellow => serializer.serialize_str("yellow"),
             Self::White => serializer.serialize_str("white"),
             Self::Reset => serializer.serialize_str("reset"),
-            Self::Hex(hex) => {
-                serializer.serialize_str(&format!("#{:02X}{:02X}{:02X}", hex[0], hex[1], hex[2]))
-            }
+            Self::Hex(hex) => serializer.serialize_str(&format!("#{:02X}{:02X}{:02X}", hex[0], hex[1], hex[2])),
         };
     }
 }

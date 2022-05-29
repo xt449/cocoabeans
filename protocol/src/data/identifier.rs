@@ -5,7 +5,7 @@ use crate::io::{MinecraftReadable, MinecraftReader, MinecraftWritable, Minecraft
 
 pub struct Identifier {
     namespace: String,
-    key: String,
+    pub key: String,
 }
 
 impl Identifier {
@@ -23,16 +23,17 @@ impl Identifier {
     }
     pub fn from_format(identifier: String) -> std::io::Result<Self> {
         let split = identifier.split(':').collect::<Vec<&str>>();
-        if split.len() == 2 {
-            return Ok(Identifier {
+        return match split.len() {
+            1 => Ok(Identifier {
+                namespace: "minecraft".to_owned(),
+                key: split[1].to_owned(),
+            }),
+            2 => Ok(Identifier {
                 namespace: split[0].to_owned(),
                 key: split[1].to_owned(),
-            });
-        }
-        return Err(Error::new(
-            ErrorKind::InvalidData,
-            "Could not split identifer into 2 distince parts",
-        ));
+            }),
+            _ => Err(Error::new(ErrorKind::InvalidData, "Could not split identifer into 2 distince parts")),
+        };
     }
 }
 
