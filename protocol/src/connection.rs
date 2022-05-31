@@ -1,24 +1,21 @@
 use std::net::{SocketAddr, TcpStream};
 
-use crate::packet::packet_handler::PacketHandler;
+use crate::PacketHandler;
 
-pub struct Connection<'c> {
+pub struct Connection {
     address: SocketAddr,
-    pub packet_handler: PacketHandler<'c>,
+    pub packet_handler: PacketHandler,
 }
 
 // Constructor
-impl<'c> Connection<'c> {
-    pub fn new(address: SocketAddr, stream: TcpStream) -> Connection<'c> {
-        return Connection {
-            address: address,
-            packet_handler: PacketHandler::new(stream),
-        };
+impl Connection {
+    pub fn new(address: SocketAddr, stream: TcpStream) -> Connection {
+        return Connection { address: address, packet_handler: PacketHandler::new(stream) };
     }
 }
 
 // Getters
-impl<'c> Connection<'c> {
+impl Connection {
     pub fn get_address(&self) -> &SocketAddr {
         return &self.address;
     }

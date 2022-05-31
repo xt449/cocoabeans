@@ -1,1 +1,2 @@
-max_width = 200
+max_width = 999
+force_multiline_blocks = false

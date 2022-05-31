@@ -1,9 +1,7 @@
-use crate::data::identifier::Identifier;
-use crate::data::item_stack::ItemStack;
+use crate::data::{Identifier, ItemStack};
 use byteorder::{NetworkEndian, ReadBytesExt, WriteBytesExt};
 use math::coordinate::BlockPosition;
 use nbt::Value;
-use num_traits::FromPrimitive;
 use registries::item::ItemRegistry;
 use std::io::{Error, ErrorKind, Read, Result, Write};
 
@@ -211,11 +209,7 @@ impl<U> WriteByteVecExt for U where U: Write + ?Sized {}
 pub trait ReadBlockPositionExt: Read {
     fn read_block_position(&mut self) -> Result<BlockPosition> {
         let long = self.read_u64::<NetworkEndian>()?;
-        return Ok(BlockPosition {
-            x: (long >> 38) as i32,
-            y: (long & 0xFFF) as i16,
-            z: ((long >> 12) & 0x3FFFFFF) as i32,
-        });
+        return Ok(BlockPosition { x: (long >> 38) as i32, y: (long & 0xFFF) as i16, z: ((long >> 12) & 0x3FFFFFF) as i32 });
     }
 }
 
@@ -238,7 +232,7 @@ pub trait ReadItemStackExt: Read {
     {
         let no_empty = self.read_bool()?;
         return if no_empty {
-            let id: ItemRegistry = FromPrimitive::from_i32(self.read_varint()?).ok_or(Error::new(ErrorKind::InvalidInput, "Can not convert from primitive"))?;
+            let id: ItemRegistry = ItemRegistry::try_from(self.read_varint()? as u32)?;
             let count = self.read_u8()?;
             let nbt = self.read_nbt()?;
 

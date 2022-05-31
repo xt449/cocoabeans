@@ -12,20 +12,12 @@ pub struct Position {
 
 impl From<Position> for BlockPosition {
     fn from(other: Position) -> Self {
-        return BlockPosition {
-            x: other.x as i32,
-            y: other.y as i16,
-            z: other.z as i32,
-        };
+        return BlockPosition { x: other.x as i32, y: other.y as i16, z: other.z as i32 };
     }
 }
 
 impl From<BlockPosition> for Position {
     fn from(other: BlockPosition) -> Self {
-        return Position {
-            x: other.x as f64,
-            y: other.y as f64,
-            z: other.z as f64,
-        };
+        return Position { x: other.x as f64, y: other.y as f64, z: other.z as f64 };
     }
 }

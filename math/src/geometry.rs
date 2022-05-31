@@ -19,14 +19,7 @@ impl BoundingBox {
         let y = min_max(y1, y2);
         let z = min_max(z1, z2);
 
-        return BoundingBox {
-            x: x.0,
-            y: y.0,
-            z: z.0,
-            dx: (x.1 - x.0) as u64,
-            dy: (y.1 - y.0) as u64,
-            dz: (z.1 - z.0) as u64,
-        };
+        return BoundingBox { x: x.0, y: y.0, z: z.0, dx: (x.1 - x.0) as u64, dy: (y.1 - y.0) as u64, dz: (z.1 - z.0) as u64 };
     }
 
     fn new_corner_positions(pos1: &BlockPosition, pos2: &BlockPosition) -> Self {
@@ -52,15 +45,7 @@ impl BoundingBox2 {
         let y = min_max(y1, y2);
         let z = min_max(z1, z2);
 
-        return BoundingBox2 {
-            x1: x.0,
-            y1: y.0,
-            z1: z.0,
-            x2: x.1,
-            y2: y.1,
-            z2: z.1,
-            hidden: false,
-        };
+        return BoundingBox2 { x1: x.0, y1: y.0, z1: z.0, x2: x.1, y2: y.1, z2: z.1, hidden: false };
     }
 
     fn new_corner_positions(pos1: &BlockPosition, pos2: &BlockPosition) -> Self {

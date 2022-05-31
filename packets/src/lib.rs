@@ -1,23 +1,30 @@
 use crate::wrapped::serverbound::*;
+use std::io::{Error, ErrorKind};
 
+pub mod data;
 mod identifier;
 pub mod wrapped;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
-    }
-}
-
-#[derive(Copy, Clone, num_derive::FromPrimitive, num_derive::ToPrimitive)]
+#[derive(Copy, Clone)]
 pub enum State {
     HANDSHAKING = -1,
     PLAY = 0,
     STATUS = 1,
     LOGIN = 2,
+}
+
+impl TryFrom<u32> for State {
+    type Error = Error;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        return match value {
+            v if v == Self::HANDSHAKING as u32 => Ok(Self::HANDSHAKING),
+            v if v == Self::PLAY as u32 => Ok(Self::PLAY),
+            v if v == Self::STATUS as u32 => Ok(Self::STATUS),
+            v if v == Self::LOGIN as u32 => Ok(Self::LOGIN),
+            _ => Err(Error::new(ErrorKind::InvalidInput, "Unable to convert to State")),
+        };
+    }
 }
 
 pub trait Handler {

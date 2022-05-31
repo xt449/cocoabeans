@@ -1,18 +1,14 @@
+use crate::data::io::{ReadBlockPositionExt, ReadBoolExt, ReadByteVecExt, ReadIdentifierExt, ReadItemStackExt, ReadLimitedStringExt, ReadVarIntExt};
+use crate::data::{Identifier, ItemStack};
 use crate::{Handler, State};
 use byteorder::{NetworkEndian, ReadBytesExt};
 use math::coordinate::BlockPosition;
-use num_traits::FromPrimitive;
-use protocol::data::identifier::Identifier;
-use protocol::data::io::{ReadBlockPositionExt, ReadBoolExt, ReadByteVecExt, ReadIdentifierExt, ReadItemStackExt, ReadLimitedStringExt, ReadVarIntExt};
-use protocol::data::item_stack::ItemStack;
 use registries::potion::PotionRegistry;
 use std::io::{Error, ErrorKind, Read, Result, Take};
 
 pub trait Packet {
-    fn handle<T: Handler>(&self, handler: &mut T);
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized;
+    fn handle(&self, handler: &mut dyn Handler);
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> where Self: Sized;
 }
 
 // Handshaking
@@ -25,16 +21,16 @@ pub struct HandshakingPacket {
 }
 
 impl Packet for HandshakingPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_handshaking(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self> {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self {
             protocol_version: reader.read_varint()?,
             address: reader.read_limited_string(255)?,
             port: reader.read_u16::<NetworkEndian>()?,
-            next_state: FromPrimitive::from_i32(reader.read_varint()?).ok_or(Error::new(ErrorKind::InvalidData, "Unable to convert from primitive to protocol::packet::packet_handler::State"))?,
+            next_state: State::try_from(reader.read_varint()? as u32)?,
         });
     }
 }
@@ -46,11 +42,11 @@ pub struct StatusRequestPacket {
 }
 
 impl Packet for StatusRequestPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_status_request(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self> {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self {});
     }
 }
@@ -60,14 +56,12 @@ pub struct StatusPingPacket {
 }
 
 impl Packet for StatusPingPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_status_ping(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self> {
-        return Ok(Self {
-            payload: reader.read_u64::<NetworkEndian>()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { payload: reader.read_u64::<NetworkEndian>()? });
     }
 }
 
@@ -78,14 +72,12 @@ pub struct LoginStartPacket {
 }
 
 impl Packet for LoginStartPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_login_start(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self> {
-        return Ok(Self {
-            username: reader.read_limited_string(16)?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { username: reader.read_limited_string(16)? });
     }
 }
 
@@ -95,11 +87,11 @@ pub struct LoginEncryptionResponsePacket {
 }
 
 impl Packet for LoginEncryptionResponsePacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_login_encryption_response(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self> {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         let length = reader.read_varint()? as usize;
         let secret = reader.read_byte_vec(length)?;
         let length = reader.read_varint()? as usize;
@@ -115,14 +107,11 @@ pub struct LoginPluginResponsePacket {
 }
 
 impl Packet for LoginPluginResponsePacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_login_plugin_response(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         let message_id = reader.read_varint()?;
         let successful = reader.read_bool()?;
         let data;
@@ -142,17 +131,12 @@ pub struct PlayTeleportConfirmPacket {
 }
 
 impl Packet for PlayTeleportConfirmPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_teleport_confirm(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            transaction_id: reader.read_varint()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { transaction_id: reader.read_varint()? });
     }
 }
 
@@ -162,18 +146,12 @@ pub struct PlayQueryBlockNBTPacket {
 }
 
 impl Packet for PlayQueryBlockNBTPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_query_block_nbt(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            transaction_id: reader.read_varint()?,
-            location: reader.read_block_position()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { transaction_id: reader.read_varint()?, location: reader.read_block_position()? });
     }
 }
 
@@ -183,14 +161,11 @@ pub struct PlaySetDifficultyPacket {
 }
 
 impl Packet for PlaySetDifficultyPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_set_difficulty(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self { difficulty: reader.read_u8()? });
     }
 }
@@ -200,17 +175,12 @@ pub struct PlayChatMessagePacket {
 }
 
 impl Packet for PlayChatMessagePacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_chat_message(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            message: reader.read_limited_string(256)?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { message: reader.read_limited_string(256)? });
     }
 }
 
@@ -219,14 +189,11 @@ pub struct PlayClientStatusPacket {
 }
 
 impl Packet for PlayClientStatusPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_client_status(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self { action: reader.read_varint()? });
     }
 }
@@ -244,14 +211,11 @@ pub struct PlayClientSettingsPacket {
 }
 
 impl Packet for PlayClientSettingsPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_client_settings(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self {
             locale: reader.read_limited_string(16)?,
             view_distance: reader.read_u8()?,
@@ -271,18 +235,12 @@ pub struct PlayTabCompletePacket {
 }
 
 impl Packet for PlayTabCompletePacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_tab_complete(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            transaction_id: reader.read_varint()?,
-            text: reader.read_limited_string(32500)?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { transaction_id: reader.read_varint()?, text: reader.read_limited_string(32500)? });
     }
 }
 
@@ -292,18 +250,12 @@ pub struct PlayClickWindowButtonPacket {
 }
 
 impl Packet for PlayClickWindowButtonPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_click_window_button(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            window_id: reader.read_u8()?,
-            button_id: reader.read_u8()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { window_id: reader.read_u8()?, button_id: reader.read_u8()? });
     }
 }
 
@@ -320,14 +272,11 @@ pub struct PlayClickWindowPacket {
 }
 
 impl Packet for PlayClickWindowPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_click_window(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         let window_id = reader.read_u8()?;
         let state_id = reader.read_varint()?;
         let slot = reader.read_i16::<NetworkEndian>()?;
@@ -342,16 +291,7 @@ impl Packet for PlayClickWindowPacket {
 
         let carried_item = reader.read_item_stack()?;
 
-        return Ok(Self {
-            window_id,
-            state_id,
-            slot,
-            button,
-            mode,
-            slots_count,
-            slots,
-            carried_item,
-        });
+        return Ok(Self { window_id, state_id, slot, button, mode, slots_count, slots, carried_item });
     }
 }
 
@@ -360,14 +300,11 @@ pub struct PlayCloseWindowPacket {
 }
 
 impl Packet for PlayCloseWindowPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_close_window(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self { window_id: reader.read_u8()? });
     }
 }
@@ -378,18 +315,12 @@ pub struct PlayPluginMessagePacket {
 }
 
 impl Packet for PlayPluginMessagePacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_plugin_message(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            channel: reader.read_identifier()?,
-            data: reader.read_byte_vec(reader.limit() as usize)?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { channel: reader.read_identifier()?, data: reader.read_byte_vec(reader.limit() as usize)? });
     }
 }
 
@@ -401,14 +332,11 @@ pub struct PlayEditBookPacket {
 }
 
 impl Packet for PlayEditBookPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_edit_book(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         let slot = reader.read_varint()?;
         let count = reader.read_varint()?;
         let entries_count = reader.read_varint()?;
@@ -431,18 +359,12 @@ pub struct PlayQueryEntityNBTPacket {
 }
 
 impl Packet for PlayQueryEntityNBTPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_query_entity_nbt(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            transaction_id: reader.read_varint()?,
-            entity_id: reader.read_varint()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { transaction_id: reader.read_varint()?, entity_id: reader.read_varint()? });
     }
 }
 
@@ -458,14 +380,11 @@ pub struct PlayInteractEntityPacket {
 }
 
 impl Packet for PlayInteractEntityPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_interact_entity(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         let entity_id = reader.read_varint()?;
         let interaction_type = reader.read_varint()?;
         let target_x;
@@ -496,15 +415,7 @@ impl Packet for PlayInteractEntityPacket {
 
         let sneeking = reader.read_bool()?;
 
-        return Ok(Self {
-            entity_id,
-            interaction_type,
-            target_x,
-            target_y,
-            target_z,
-            hand,
-            sneeking,
-        });
+        return Ok(Self { entity_id, interaction_type, target_x, target_y, target_z, hand, sneeking });
     }
 }
 
@@ -515,19 +426,12 @@ pub struct PlayGenerateStructurePacket {
 }
 
 impl Packet for PlayGenerateStructurePacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_generate_structure(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            location: reader.read_block_position()?,
-            levels: reader.read_varint()?,
-            keep_jigsaws: reader.read_bool()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { location: reader.read_block_position()?, levels: reader.read_varint()?, keep_jigsaws: reader.read_bool()? });
     }
 }
 
@@ -536,17 +440,12 @@ pub struct PlayKeepAlivePacket {
 }
 
 impl Packet for PlayKeepAlivePacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_keep_alive(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            id: reader.read_u64::<NetworkEndian>()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { id: reader.read_u64::<NetworkEndian>()? });
     }
 }
 
@@ -556,14 +455,11 @@ pub struct PlayLockDifficultyPacket {
 }
 
 impl Packet for PlayLockDifficultyPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_lock_difficulty(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self { locked: reader.read_bool()? });
     }
 }
@@ -576,20 +472,12 @@ pub struct PlayPlayerPositionPacket {
 }
 
 impl Packet for PlayPlayerPositionPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_player_position(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            x: reader.read_f64::<NetworkEndian>()?,
-            y: reader.read_f64::<NetworkEndian>()?,
-            z: reader.read_f64::<NetworkEndian>()?,
-            on_ground: reader.read_bool()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { x: reader.read_f64::<NetworkEndian>()?, y: reader.read_f64::<NetworkEndian>()?, z: reader.read_f64::<NetworkEndian>()?, on_ground: reader.read_bool()? });
     }
 }
 
@@ -603,14 +491,11 @@ pub struct PlayPlayerPositionAndRotationPacket {
 }
 
 impl Packet for PlayPlayerPositionAndRotationPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_player_position_and_rotation(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self {
             x: reader.read_f64::<NetworkEndian>()?,
             y: reader.read_f64::<NetworkEndian>()?,
@@ -629,19 +514,12 @@ pub struct PlayPlayerRotationPacket {
 }
 
 impl Packet for PlayPlayerRotationPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_player_rotation(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            yaw: reader.read_f32::<NetworkEndian>()?,
-            pitch: reader.read_f32::<NetworkEndian>()?,
-            on_ground: reader.read_bool()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { yaw: reader.read_f32::<NetworkEndian>()?, pitch: reader.read_f32::<NetworkEndian>()?, on_ground: reader.read_bool()? });
     }
 }
 
@@ -650,14 +528,11 @@ pub struct PlayPlayerMovementPacket {
 }
 
 impl Packet for PlayPlayerMovementPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_player_movement(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self { on_ground: reader.read_bool()? });
     }
 }
@@ -671,14 +546,11 @@ pub struct PlayVehicleMovePacket {
 }
 
 impl Packet for PlayVehicleMovePacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_vehicle_move(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self {
             x: reader.read_f64::<NetworkEndian>()?,
             y: reader.read_f64::<NetworkEndian>()?,
@@ -695,18 +567,12 @@ pub struct PlaySteerBoatPacket {
 }
 
 impl Packet for PlaySteerBoatPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_steer_boat(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            left_paddle: reader.read_bool()?,
-            right_paddle: reader.read_bool()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { left_paddle: reader.read_bool()?, right_paddle: reader.read_bool()? });
     }
 }
 
@@ -715,14 +581,11 @@ pub struct PlayPickItemPacket {
 }
 
 impl Packet for PlayPickItemPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_pick_item(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self { slot: reader.read_varint()? });
     }
 }
@@ -734,19 +597,12 @@ pub struct PlayCraftRecipeRequestPacket {
 }
 
 impl Packet for PlayCraftRecipeRequestPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_craft_recipe_request(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            window_id: reader.read_u8()?,
-            recipe: reader.read_identifier()?,
-            make_all: reader.read_bool()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { window_id: reader.read_u8()?, recipe: reader.read_identifier()?, make_all: reader.read_bool()? });
     }
 }
 
@@ -755,14 +611,11 @@ pub struct PlayPlayerAbilitiesPacket {
 }
 
 impl Packet for PlayPlayerAbilitiesPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_player_abilities(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self { flags: reader.read_u8()? });
     }
 }
@@ -774,19 +627,12 @@ pub struct PlayPlayerDiggingPacket {
 }
 
 impl Packet for PlayPlayerDiggingPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_player_digging(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            status: reader.read_varint()?,
-            location: reader.read_block_position()?,
-            face: reader.read_u8()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { status: reader.read_varint()?, location: reader.read_block_position()?, face: reader.read_u8()? });
     }
 }
 
@@ -797,19 +643,12 @@ pub struct PlayEntityActionPacket {
 }
 
 impl Packet for PlayEntityActionPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_entity_action(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            entity_id: reader.read_varint()?,
-            action: reader.read_varint()?,
-            jump_boost: reader.read_varint()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { entity_id: reader.read_varint()?, action: reader.read_varint()?, jump_boost: reader.read_varint()? });
     }
 }
 
@@ -820,19 +659,12 @@ pub struct PlaySteerVehiclePacket {
 }
 
 impl Packet for PlaySteerVehiclePacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_steer_vehicle(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            sideways: reader.read_f32::<NetworkEndian>()?,
-            forward: reader.read_f32::<NetworkEndian>()?,
-            flags: reader.read_u8()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { sideways: reader.read_f32::<NetworkEndian>()?, forward: reader.read_f32::<NetworkEndian>()?, flags: reader.read_u8()? });
     }
 }
 
@@ -841,17 +673,12 @@ pub struct PlayPongPacket {
 }
 
 impl Packet for PlayPongPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_pong(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            id: reader.read_i32::<NetworkEndian>()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { id: reader.read_i32::<NetworkEndian>()? });
     }
 }
 
@@ -862,19 +689,12 @@ pub struct PlaySetRecipeBookStatePacket {
 }
 
 impl Packet for PlaySetRecipeBookStatePacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_set_recipe_book_state(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            book_id: reader.read_varint()?,
-            book_open: reader.read_bool()?,
-            filter_active: reader.read_bool()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { book_id: reader.read_varint()?, book_open: reader.read_bool()?, filter_active: reader.read_bool()? });
     }
 }
 
@@ -883,14 +703,11 @@ pub struct PlaySetDisplayedRecipePacket {
 }
 
 impl Packet for PlaySetDisplayedRecipePacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_set_displayed_recipe(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self { recipe_id: reader.read_identifier()? });
     }
 }
@@ -900,17 +717,12 @@ pub struct PlayNameItemPacket {
 }
 
 impl Packet for PlayNameItemPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_name_item(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            name: reader.read_limited_string(32767)?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { name: reader.read_limited_string(32767)? });
     }
 }
 
@@ -919,14 +731,11 @@ pub struct PlayResourcePackStatusPacket {
 }
 
 impl Packet for PlayResourcePackStatusPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_resource_pack_status(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self { result: reader.read_varint()? });
     }
 }
@@ -937,14 +746,11 @@ pub struct PlayAdvancementTabPacket {
 }
 
 impl Packet for PlayAdvancementTabPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_advancement_tab(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         let action = reader.read_varint()?;
         let tab_id;
         match action {
@@ -966,14 +772,11 @@ pub struct PlaySelectTradePacket {
 }
 
 impl Packet for PlaySelectTradePacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_select_trade(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self { selected_slot: reader.read_varint()? });
     }
 }
@@ -984,18 +787,12 @@ pub struct PlaySetBeaconEffectPacket {
 }
 
 impl Packet for PlaySetBeaconEffectPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_set_beacon_effect(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            primary_effect: FromPrimitive::from_i32(reader.read_varint()?).ok_or(Error::new(ErrorKind::InvalidData, "Unable to convert from primitive to registries::potion::PotionRegistry"))?,
-            secondary_effect: FromPrimitive::from_i32(reader.read_varint()?).ok_or(Error::new(ErrorKind::InvalidData, "Unable to convert from primitive to registries::potion::PotionRegistry"))?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { primary_effect: PotionRegistry::try_from(reader.read_varint()? as u32)?, secondary_effect: PotionRegistry::try_from(reader.read_varint()? as u32)? });
     }
 }
 
@@ -1004,17 +801,12 @@ pub struct PlayHeldItemChangePacket {
 }
 
 impl Packet for PlayHeldItemChangePacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_held_item_change(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            slot: reader.read_u16::<NetworkEndian>()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { slot: reader.read_u16::<NetworkEndian>()? });
     }
 }
 
@@ -1026,20 +818,12 @@ pub struct PlayUpdateCommandBlockPacket {
 }
 
 impl Packet for PlayUpdateCommandBlockPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_update_command_block(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            location: reader.read_block_position()?,
-            command: reader.read_limited_string(32767)?,
-            mode: reader.read_varint()?,
-            flags: reader.read_u8()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { location: reader.read_block_position()?, command: reader.read_limited_string(32767)?, mode: reader.read_varint()?, flags: reader.read_u8()? });
     }
 }
 
@@ -1050,19 +834,12 @@ pub struct PlayUpdateCommandBlockMinecartPacket {
 }
 
 impl Packet for PlayUpdateCommandBlockMinecartPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_update_command_block_minecart(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            entity_id: reader.read_varint()?,
-            command: reader.read_limited_string(32767)?,
-            track_output: reader.read_bool()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { entity_id: reader.read_varint()?, command: reader.read_limited_string(32767)?, track_output: reader.read_bool()? });
     }
 }
 
@@ -1072,18 +849,12 @@ pub struct PlayCreativeInventoryActionPacket {
 }
 
 impl Packet for PlayCreativeInventoryActionPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_creative_inventory_action(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            slot: reader.read_i16::<NetworkEndian>()?,
-            item: reader.read_item_stack()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { slot: reader.read_i16::<NetworkEndian>()?, item: reader.read_item_stack()? });
     }
 }
 
@@ -1098,14 +869,11 @@ pub struct PlayUpdateJigsawBlockPacket {
 }
 
 impl Packet for PlayUpdateJigsawBlockPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_update_jigsaw_block(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self {
             location: reader.read_block_position()?,
             name: reader.read_identifier()?,
@@ -1137,14 +905,11 @@ pub struct PlayUpdateStructureBlockPacket {
 }
 
 impl Packet for PlayUpdateStructureBlockPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_update_structure_block(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self {
             location: reader.read_block_position()?,
             action: reader.read_varint()?,
@@ -1175,14 +940,11 @@ pub struct PlayUpdateSignBlockPacket {
 }
 
 impl Packet for PlayUpdateSignBlockPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_update_sign_block(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self {
             location: reader.read_block_position()?,
             line_1: reader.read_limited_string(384)?,
@@ -1198,14 +960,11 @@ pub struct PlayAnimationPacket {
 }
 
 impl Packet for PlayAnimationPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_animation(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self { hand: reader.read_varint()? });
     }
 }
@@ -1215,17 +974,12 @@ pub struct PlaySpectatePacket {
 }
 
 impl Packet for PlaySpectatePacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_spectate(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
-        return Ok(Self {
-            target: reader.read_u128::<NetworkEndian>()?,
-        });
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
+        return Ok(Self { target: reader.read_u128::<NetworkEndian>()? });
     }
 }
 
@@ -1240,14 +994,11 @@ pub struct PlayPlayerBlockPlacementPacket {
 }
 
 impl Packet for PlayPlayerBlockPlacementPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_player_block_placement(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self {
             hand: reader.read_varint()?,
             location: reader.read_block_position()?,
@@ -1265,14 +1016,11 @@ pub struct PlayUseItemPacket {
 }
 
 impl Packet for PlayUseItemPacket {
-    fn handle<T: Handler>(&self, handler: &mut T) {
+    fn handle(&self, handler: &mut dyn Handler) {
         handler.handle_play_use_item(self);
     }
 
-    fn read_from<T: Read>(reader: &mut Take<T>) -> Result<Self>
-    where
-        Self: Sized,
-    {
+    fn read_from(reader: &mut Take<&mut dyn Read>) -> Result<Self> {
         return Ok(Self { hand: reader.read_varint()? });
     }
 }

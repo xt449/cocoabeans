@@ -21,7 +21,7 @@ pub struct MinecraftWriter {
     pub buf: BytesMut,
 }
 
-// TODO - should be used for packet encryption
+// TODO: should be used for packet encryption
 pub struct MinecraftBuffer {
     buf: BytesMut,
 }

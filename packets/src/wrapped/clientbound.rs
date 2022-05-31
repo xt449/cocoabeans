@@ -1,9 +1,10 @@
+use crate::data::Destination;
 use std::io::Write;
 
 pub trait Packet {
-    fn write_to<T: Write>(&self, write: &mut T);
+    fn write_to(&self, write: &mut dyn Write);
 }
-/*
+
 // Handshaking
 
 // Status
@@ -104,11 +105,10 @@ pub struct PlaySpawnPlayerPacket {
 pub struct PlaySculkVibrationSignalPacket {
     pub source_location: (i32, i16, i32),
     pub destination_identifier: String,
-    pub destination: u32 | u64, // TODO think of a good way of handling this
-    pub arrival_ticks: i32
+    pub destination: Destination,
+    pub arrival_ticks: i32,
 }
 
 pub struct PlayPacket {
     pub entity_id: u32,
 }
-*/
