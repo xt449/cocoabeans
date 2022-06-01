@@ -1,5 +1,5 @@
 use crate::comparison::min_max;
-use crate::coordinate::IntPosition;
+use crate::coordinate::BlockPosition;
 
 pub struct BoundingBox {
     // Min Corner
@@ -19,18 +19,11 @@ impl BoundingBox {
         let y = min_max(y1, y2);
         let z = min_max(z1, z2);
 
-        return BoundingBox {
-            x: x.0,
-            y: y.0,
-            z: z.0,
-            dx: (x.1 - x.0) as u64,
-            dy: (y.1 - y.0) as u64,
-            dz: (z.1 - z.0) as u64,
-        };
+        return BoundingBox { x: x.0, y: y.0, z: z.0, dx: (x.1 - x.0) as u64, dy: (y.1 - y.0) as u64, dz: (z.1 - z.0) as u64 };
     }
 
-    fn new_corner_positions(pos1: &IntPosition, pos2: &IntPosition) -> Self {
-        return BoundingBox::new_corners(pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z);
+    fn new_corner_positions(pos1: &BlockPosition, pos2: &BlockPosition) -> Self {
+        return BoundingBox::new_corners(pos1.x as i64, pos1.y as i64, pos1.z as i64, pos2.x as i64, pos2.y as i64, pos2.z as i64);
     }
 }
 
@@ -52,19 +45,11 @@ impl BoundingBox2 {
         let y = min_max(y1, y2);
         let z = min_max(z1, z2);
 
-        return BoundingBox2 {
-            x1: x.0,
-            y1: y.0,
-            z1: z.0,
-            x2: x.1,
-            y2: y.1,
-            z2: z.1,
-            hidden: false,
-        };
+        return BoundingBox2 { x1: x.0, y1: y.0, z1: z.0, x2: x.1, y2: y.1, z2: z.1, hidden: false };
     }
 
-    fn new_corner_positions(pos1: &IntPosition, pos2: &IntPosition) -> Self {
-        return BoundingBox2::new_corners(pos1.x, pos1.y, pos1.z, pos2.x, pos2.y, pos2.z);
+    fn new_corner_positions(pos1: &BlockPosition, pos2: &BlockPosition) -> Self {
+        return BoundingBox2::new_corners(pos1.x as i64, pos1.y as i64, pos1.z as i64, pos2.x as i64, pos2.y as i64, pos2.z as i64);
     }
 }
 

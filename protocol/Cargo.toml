@@ -8,11 +8,12 @@ edition = "2021"
 [dependencies]
 blocks = { path = "../../cocoabeans-generators/out/blocks" }
 registries = { path = "../../cocoabeans-generators/out/registries" }
+math = { path = "../math" }
+
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = "1.0.81"
+hematite-nbt = "0.5.2"
 bytes = "1.1.0"
+byteorder = "1.4.3"
 aes = "0.8.1"
 rsa = "0.6.1"
-extensions = { path = "../extensions" }
-math = { path = "../math" }
-nbt = { path = "../nbt" }
