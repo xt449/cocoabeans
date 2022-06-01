@@ -1,5 +1,6 @@
-use crate::{Packet, State};
 use std::io::{Error, ErrorKind, Result};
+
+use crate::{Packet, State};
 
 pub mod clientbound;
 pub mod serverbound;

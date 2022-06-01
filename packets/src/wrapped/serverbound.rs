@@ -1,7 +1,9 @@
+use std::io::{Error, ErrorKind, Result};
+
 use byteorder::{NetworkEndian, ReadBytesExt};
-use math::coordinate::BlockPosition;
 use registries::potion::PotionRegistry;
-use std::io::{Error, ErrorKind, Read, Result, Take};
+
+use math::coordinate::BlockPosition;
 
 use crate::data::io::{ReadBlockPositionExt, ReadBoolExt, ReadByteVecExt, ReadIdentifierExt, ReadItemStackExt, ReadLimitedStringExt, ReadVarIntExt};
 use crate::data::{Identifier, ItemStack};
@@ -11,7 +13,7 @@ pub trait Packet {
     fn handle(&self, handler: &mut dyn Handler);
 }
 
-pub(crate) type PacketBuilder = fn(&mut Take<&mut dyn Read>) -> Result<Box<dyn Packet>>;
+pub(crate) type PacketBuilder = fn(&[u8]) -> Result<Box<dyn Packet>>;
 
 // Handshaking
 
@@ -29,12 +31,12 @@ impl Packet for HandshakingPacket {
 }
 
 impl HandshakingPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
         return Ok(Box::new(Self {
-            protocol_version: reader.read_varint()?,
-            address: reader.read_limited_string(255)?,
-            port: reader.read_u16::<NetworkEndian>()?,
-            next_state: State::try_from(reader.read_varint()? as u32)?,
+            protocol_version: packet_bytes.read_varint()?,
+            address: packet_bytes.read_limited_string(255)?,
+            port: packet_bytes.read_u16::<NetworkEndian>()?,
+            next_state: State::try_from(packet_bytes.read_varint()? as u32)?,
         }));
     };
 }
@@ -52,7 +54,7 @@ impl Packet for StatusRequestPacket {
 }
 
 impl StatusRequestPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
         return Ok(Box::new(Self {}));
     };
 }
@@ -68,8 +70,8 @@ impl Packet for StatusPingPacket {
 }
 
 impl StatusPingPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { payload: reader.read_u64::<NetworkEndian>()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { payload: packet_bytes.read_u64::<NetworkEndian>()? }));
     };
 }
 
@@ -86,8 +88,8 @@ impl Packet for LoginStartPacket {
 }
 
 impl LoginStartPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { username: reader.read_limited_string(16)? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { username: packet_bytes.read_limited_string(16)? }));
     };
 }
 
@@ -103,11 +105,11 @@ impl Packet for LoginEncryptionResponsePacket {
 }
 
 impl LoginEncryptionResponsePacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        let length = reader.read_varint()? as usize;
-        let secret = reader.read_byte_vec(length)?;
-        let length = reader.read_varint()? as usize;
-        let verification_token = reader.read_byte_vec(length)?;
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        let length = packet_bytes.read_varint()? as usize;
+        let secret = packet_bytes.read_byte_vec(length)?;
+        let length = packet_bytes.read_varint()? as usize;
+        let verification_token = packet_bytes.read_byte_vec(length)?;
         return Ok(Box::new(Self { secret, verification_token }));
     };
 }
@@ -125,12 +127,12 @@ impl Packet for LoginPluginResponsePacket {
 }
 
 impl LoginPluginResponsePacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        let message_id = reader.read_varint()?;
-        let successful = reader.read_bool()?;
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        let message_id = packet_bytes.read_varint()?;
+        let successful = packet_bytes.read_bool()?;
         let data;
         if successful {
-            data = Some(reader.read_byte_vec(reader.limit() as usize)?);
+            data = Some(packet_bytes.read_byte_vec(packet_bytes.len())?);
         } else {
             data = None;
         }
@@ -151,8 +153,8 @@ impl Packet for PlayTeleportConfirmPacket {
 }
 
 impl PlayTeleportConfirmPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { transaction_id: reader.read_varint()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { transaction_id: packet_bytes.read_varint()? }));
     };
 }
 
@@ -168,8 +170,8 @@ impl Packet for PlayQueryBlockNBTPacket {
 }
 
 impl PlayQueryBlockNBTPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { transaction_id: reader.read_varint()?, location: reader.read_block_position()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { transaction_id: packet_bytes.read_varint()?, location: packet_bytes.read_block_position()? }));
     };
 }
 
@@ -185,8 +187,8 @@ impl Packet for PlaySetDifficultyPacket {
 }
 
 impl PlaySetDifficultyPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { difficulty: reader.read_u8()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { difficulty: packet_bytes.read_u8()? }));
     };
 }
 
@@ -201,8 +203,8 @@ impl Packet for PlayChatMessagePacket {
 }
 
 impl PlayChatMessagePacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { message: reader.read_limited_string(256)? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { message: packet_bytes.read_limited_string(256)? }));
     };
 }
 
@@ -217,8 +219,8 @@ impl Packet for PlayClientStatusPacket {
 }
 
 impl PlayClientStatusPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { action: reader.read_varint()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { action: packet_bytes.read_varint()? }));
     };
 }
 
@@ -241,16 +243,16 @@ impl Packet for PlayClientSettingsPacket {
 }
 
 impl PlayClientSettingsPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
         return Ok(Box::new(Self {
-            locale: reader.read_limited_string(16)?,
-            view_distance: reader.read_u8()?,
-            chat_mode: reader.read_varint()?,
-            chat_colors: reader.read_bool()?,
-            skin_parts: reader.read_u8()?,
-            main_hand: reader.read_varint()?,
-            text_filtering: reader.read_bool()?,
-            server_listing: reader.read_bool()?,
+            locale: packet_bytes.read_limited_string(16)?,
+            view_distance: packet_bytes.read_u8()?,
+            chat_mode: packet_bytes.read_varint()?,
+            chat_colors: packet_bytes.read_bool()?,
+            skin_parts: packet_bytes.read_u8()?,
+            main_hand: packet_bytes.read_varint()?,
+            text_filtering: packet_bytes.read_bool()?,
+            server_listing: packet_bytes.read_bool()?,
         }));
     };
 }
@@ -267,8 +269,8 @@ impl Packet for PlayTabCompletePacket {
 }
 
 impl PlayTabCompletePacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { transaction_id: reader.read_varint()?, text: reader.read_limited_string(32500)? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { transaction_id: packet_bytes.read_varint()?, text: packet_bytes.read_limited_string(32500)? }));
     };
 }
 
@@ -284,8 +286,8 @@ impl Packet for PlayClickWindowButtonPacket {
 }
 
 impl PlayClickWindowButtonPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { window_id: reader.read_u8()?, button_id: reader.read_u8()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { window_id: packet_bytes.read_u8()?, button_id: packet_bytes.read_u8()? }));
     };
 }
 
@@ -308,20 +310,20 @@ impl Packet for PlayClickWindowPacket {
 }
 
 impl PlayClickWindowPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        let window_id = reader.read_u8()?;
-        let state_id = reader.read_varint()?;
-        let slot = reader.read_i16::<NetworkEndian>()?;
-        let button = reader.read_u8()?;
-        let mode = reader.read_varint()?;
-        let slots_count = reader.read_varint()?;
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        let window_id = packet_bytes.read_u8()?;
+        let state_id = packet_bytes.read_varint()?;
+        let slot = packet_bytes.read_i16::<NetworkEndian>()?;
+        let button = packet_bytes.read_u8()?;
+        let mode = packet_bytes.read_varint()?;
+        let slots_count = packet_bytes.read_varint()?;
         let mut slots = Vec::with_capacity(slots_count as usize);
 
         for i in 0..(slots_count + 1) as usize {
-            slots[i] = (reader.read_i16::<NetworkEndian>()?, reader.read_item_stack()?);
+            slots[i] = (packet_bytes.read_i16::<NetworkEndian>()?, packet_bytes.read_item_stack()?);
         }
 
-        let carried_item = reader.read_item_stack()?;
+        let carried_item = packet_bytes.read_item_stack()?;
 
         return Ok(Box::new(Self { window_id, state_id, slot, button, mode, slots_count, slots, carried_item }));
     };
@@ -338,8 +340,8 @@ impl Packet for PlayCloseWindowPacket {
 }
 
 impl PlayCloseWindowPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { window_id: reader.read_u8()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { window_id: packet_bytes.read_u8()? }));
     };
 }
 
@@ -355,8 +357,8 @@ impl Packet for PlayPluginMessagePacket {
 }
 
 impl PlayPluginMessagePacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { channel: reader.read_identifier()?, data: reader.read_byte_vec(reader.limit() as usize)? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { channel: packet_bytes.read_identifier()?, data: packet_bytes.read_byte_vec(packet_bytes.len())? }));
     };
 }
 
@@ -374,18 +376,18 @@ impl Packet for PlayEditBookPacket {
 }
 
 impl PlayEditBookPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        let slot = reader.read_varint()?;
-        let count = reader.read_varint()?;
-        let entries_count = reader.read_varint()?;
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        let slot = packet_bytes.read_varint()?;
+        let count = packet_bytes.read_varint()?;
+        let entries_count = packet_bytes.read_varint()?;
         let mut entries = Vec::with_capacity(entries_count as usize);
 
         for i in 0..(entries_count + 1) as usize {
-            entries[i] = reader.read_limited_string(8192)?;
+            entries[i] = packet_bytes.read_limited_string(8192)?;
         }
 
-        let has_title = reader.read_bool()?;
-        let title = if has_title { Some(reader.read_limited_string(128)?) } else { None };
+        let has_title = packet_bytes.read_bool()?;
+        let title = if has_title { Some(packet_bytes.read_limited_string(128)?) } else { None };
 
         return Ok(Box::new(Self { slot, count, entries, title }));
     };
@@ -403,8 +405,8 @@ impl Packet for PlayQueryEntityNBTPacket {
 }
 
 impl PlayQueryEntityNBTPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { transaction_id: reader.read_varint()?, entity_id: reader.read_varint()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { transaction_id: packet_bytes.read_varint()?, entity_id: packet_bytes.read_varint()? }));
     };
 }
 
@@ -426,9 +428,9 @@ impl Packet for PlayInteractEntityPacket {
 }
 
 impl PlayInteractEntityPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        let entity_id = reader.read_varint()?;
-        let interaction_type = reader.read_varint()?;
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        let entity_id = packet_bytes.read_varint()?;
+        let interaction_type = packet_bytes.read_varint()?;
         let target_x;
         let target_y;
         let target_z;
@@ -438,7 +440,7 @@ impl PlayInteractEntityPacket {
                 target_x = None;
                 target_y = None;
                 target_z = None;
-                hand = Some(reader.read_varint()?);
+                hand = Some(packet_bytes.read_varint()?);
             }
             1 => {
                 target_x = None;
@@ -447,15 +449,15 @@ impl PlayInteractEntityPacket {
                 hand = None;
             }
             2 => {
-                target_x = Some(reader.read_f32::<NetworkEndian>()?);
-                target_y = Some(reader.read_f32::<NetworkEndian>()?);
-                target_z = Some(reader.read_f32::<NetworkEndian>()?);
-                hand = Some(reader.read_varint()?);
+                target_x = Some(packet_bytes.read_f32::<NetworkEndian>()?);
+                target_y = Some(packet_bytes.read_f32::<NetworkEndian>()?);
+                target_z = Some(packet_bytes.read_f32::<NetworkEndian>()?);
+                hand = Some(packet_bytes.read_varint()?);
             }
             _ => return Err(Error::new(ErrorKind::InvalidData, "Unknown iteraction_type from primitive")),
         }
 
-        let sneeking = reader.read_bool()?;
+        let sneeking = packet_bytes.read_bool()?;
 
         return Ok(Box::new(Self { entity_id, interaction_type, target_x, target_y, target_z, hand, sneeking }));
     };
@@ -474,8 +476,8 @@ impl Packet for PlayGenerateStructurePacket {
 }
 
 impl PlayGenerateStructurePacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { location: reader.read_block_position()?, levels: reader.read_varint()?, keep_jigsaws: reader.read_bool()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { location: packet_bytes.read_block_position()?, levels: packet_bytes.read_varint()?, keep_jigsaws: packet_bytes.read_bool()? }));
     };
 }
 
@@ -490,8 +492,8 @@ impl Packet for PlayKeepAlivePacket {
 }
 
 impl PlayKeepAlivePacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { id: reader.read_u64::<NetworkEndian>()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { id: packet_bytes.read_u64::<NetworkEndian>()? }));
     };
 }
 
@@ -507,8 +509,8 @@ impl Packet for PlayLockDifficultyPacket {
 }
 
 impl PlayLockDifficultyPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { locked: reader.read_bool()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { locked: packet_bytes.read_bool()? }));
     };
 }
 
@@ -526,8 +528,8 @@ impl Packet for PlayPlayerPositionPacket {
 }
 
 impl PlayPlayerPositionPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { x: reader.read_f64::<NetworkEndian>()?, y: reader.read_f64::<NetworkEndian>()?, z: reader.read_f64::<NetworkEndian>()?, on_ground: reader.read_bool()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { x: packet_bytes.read_f64::<NetworkEndian>()?, y: packet_bytes.read_f64::<NetworkEndian>()?, z: packet_bytes.read_f64::<NetworkEndian>()?, on_ground: packet_bytes.read_bool()? }));
     };
 }
 
@@ -547,14 +549,14 @@ impl Packet for PlayPlayerPositionAndRotationPacket {
 }
 
 impl PlayPlayerPositionAndRotationPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
         return Ok(Box::new(Self {
-            x: reader.read_f64::<NetworkEndian>()?,
-            y: reader.read_f64::<NetworkEndian>()?,
-            z: reader.read_f64::<NetworkEndian>()?,
-            yaw: reader.read_f32::<NetworkEndian>()?,
-            pitch: reader.read_f32::<NetworkEndian>()?,
-            on_ground: reader.read_bool()?,
+            x: packet_bytes.read_f64::<NetworkEndian>()?,
+            y: packet_bytes.read_f64::<NetworkEndian>()?,
+            z: packet_bytes.read_f64::<NetworkEndian>()?,
+            yaw: packet_bytes.read_f32::<NetworkEndian>()?,
+            pitch: packet_bytes.read_f32::<NetworkEndian>()?,
+            on_ground: packet_bytes.read_bool()?,
         }));
     };
 }
@@ -572,8 +574,8 @@ impl Packet for PlayPlayerRotationPacket {
 }
 
 impl PlayPlayerRotationPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { yaw: reader.read_f32::<NetworkEndian>()?, pitch: reader.read_f32::<NetworkEndian>()?, on_ground: reader.read_bool()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { yaw: packet_bytes.read_f32::<NetworkEndian>()?, pitch: packet_bytes.read_f32::<NetworkEndian>()?, on_ground: packet_bytes.read_bool()? }));
     };
 }
 
@@ -588,8 +590,8 @@ impl Packet for PlayPlayerMovementPacket {
 }
 
 impl PlayPlayerMovementPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { on_ground: reader.read_bool()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { on_ground: packet_bytes.read_bool()? }));
     };
 }
 
@@ -608,13 +610,13 @@ impl Packet for PlayVehicleMovePacket {
 }
 
 impl PlayVehicleMovePacket {
-    pub const BUILDER: PacketBuilder = |reader| {
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
         return Ok(Box::new(Self {
-            x: reader.read_f64::<NetworkEndian>()?,
-            y: reader.read_f64::<NetworkEndian>()?,
-            z: reader.read_f64::<NetworkEndian>()?,
-            yaw: reader.read_f32::<NetworkEndian>()?,
-            pitch: reader.read_f32::<NetworkEndian>()?,
+            x: packet_bytes.read_f64::<NetworkEndian>()?,
+            y: packet_bytes.read_f64::<NetworkEndian>()?,
+            z: packet_bytes.read_f64::<NetworkEndian>()?,
+            yaw: packet_bytes.read_f32::<NetworkEndian>()?,
+            pitch: packet_bytes.read_f32::<NetworkEndian>()?,
         }));
     };
 }
@@ -631,8 +633,8 @@ impl Packet for PlaySteerBoatPacket {
 }
 
 impl PlaySteerBoatPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { left_paddle: reader.read_bool()?, right_paddle: reader.read_bool()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { left_paddle: packet_bytes.read_bool()?, right_paddle: packet_bytes.read_bool()? }));
     };
 }
 
@@ -647,8 +649,8 @@ impl Packet for PlayPickItemPacket {
 }
 
 impl PlayPickItemPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { slot: reader.read_varint()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { slot: packet_bytes.read_varint()? }));
     };
 }
 
@@ -665,8 +667,8 @@ impl Packet for PlayCraftRecipeRequestPacket {
 }
 
 impl PlayCraftRecipeRequestPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { window_id: reader.read_u8()?, recipe: reader.read_identifier()?, make_all: reader.read_bool()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { window_id: packet_bytes.read_u8()?, recipe: packet_bytes.read_identifier()?, make_all: packet_bytes.read_bool()? }));
     };
 }
 
@@ -681,8 +683,8 @@ impl Packet for PlayPlayerAbilitiesPacket {
 }
 
 impl PlayPlayerAbilitiesPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { flags: reader.read_u8()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { flags: packet_bytes.read_u8()? }));
     };
 }
 
@@ -699,8 +701,8 @@ impl Packet for PlayPlayerDiggingPacket {
 }
 
 impl PlayPlayerDiggingPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { status: reader.read_varint()?, location: reader.read_block_position()?, face: reader.read_u8()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { status: packet_bytes.read_varint()?, location: packet_bytes.read_block_position()?, face: packet_bytes.read_u8()? }));
     };
 }
 
@@ -717,8 +719,8 @@ impl Packet for PlayEntityActionPacket {
 }
 
 impl PlayEntityActionPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { entity_id: reader.read_varint()?, action: reader.read_varint()?, jump_boost: reader.read_varint()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { entity_id: packet_bytes.read_varint()?, action: packet_bytes.read_varint()?, jump_boost: packet_bytes.read_varint()? }));
     };
 }
 
@@ -735,8 +737,8 @@ impl Packet for PlaySteerVehiclePacket {
 }
 
 impl PlaySteerVehiclePacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { sideways: reader.read_f32::<NetworkEndian>()?, forward: reader.read_f32::<NetworkEndian>()?, flags: reader.read_u8()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { sideways: packet_bytes.read_f32::<NetworkEndian>()?, forward: packet_bytes.read_f32::<NetworkEndian>()?, flags: packet_bytes.read_u8()? }));
     };
 }
 
@@ -751,8 +753,8 @@ impl Packet for PlayPongPacket {
 }
 
 impl PlayPongPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { id: reader.read_i32::<NetworkEndian>()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { id: packet_bytes.read_i32::<NetworkEndian>()? }));
     };
 }
 
@@ -769,8 +771,8 @@ impl Packet for PlaySetRecipeBookStatePacket {
 }
 
 impl PlaySetRecipeBookStatePacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { book_id: reader.read_varint()?, book_open: reader.read_bool()?, filter_active: reader.read_bool()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { book_id: packet_bytes.read_varint()?, book_open: packet_bytes.read_bool()?, filter_active: packet_bytes.read_bool()? }));
     };
 }
 
@@ -785,8 +787,8 @@ impl Packet for PlaySetDisplayedRecipePacket {
 }
 
 impl PlaySetDisplayedRecipePacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { recipe_id: reader.read_identifier()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { recipe_id: packet_bytes.read_identifier()? }));
     };
 }
 
@@ -801,8 +803,8 @@ impl Packet for PlayNameItemPacket {
 }
 
 impl PlayNameItemPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { name: reader.read_limited_string(32767)? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { name: packet_bytes.read_limited_string(32767)? }));
     };
 }
 
@@ -817,8 +819,8 @@ impl Packet for PlayResourcePackStatusPacket {
 }
 
 impl PlayResourcePackStatusPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { result: reader.read_varint()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { result: packet_bytes.read_varint()? }));
     };
 }
 
@@ -834,12 +836,12 @@ impl Packet for PlayAdvancementTabPacket {
 }
 
 impl PlayAdvancementTabPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        let action = reader.read_varint()?;
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        let action = packet_bytes.read_varint()?;
         let tab_id;
         match action {
             0 => {
-                tab_id = Some(reader.read_identifier()?);
+                tab_id = Some(packet_bytes.read_identifier()?);
             }
             1 => {
                 tab_id = None;
@@ -862,8 +864,8 @@ impl Packet for PlaySelectTradePacket {
 }
 
 impl PlaySelectTradePacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { selected_slot: reader.read_varint()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { selected_slot: packet_bytes.read_varint()? }));
     };
 }
 
@@ -879,8 +881,8 @@ impl Packet for PlaySetBeaconEffectPacket {
 }
 
 impl PlaySetBeaconEffectPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { primary_effect: PotionRegistry::try_from(reader.read_varint()? as u32)?, secondary_effect: PotionRegistry::try_from(reader.read_varint()? as u32)? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { primary_effect: PotionRegistry::try_from(packet_bytes.read_varint()? as u32)?, secondary_effect: PotionRegistry::try_from(packet_bytes.read_varint()? as u32)? }));
     };
 }
 
@@ -895,8 +897,8 @@ impl Packet for PlayHeldItemChangePacket {
 }
 
 impl PlayHeldItemChangePacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { slot: reader.read_u16::<NetworkEndian>()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { slot: packet_bytes.read_u16::<NetworkEndian>()? }));
     };
 }
 
@@ -914,8 +916,8 @@ impl Packet for PlayUpdateCommandBlockPacket {
 }
 
 impl PlayUpdateCommandBlockPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { location: reader.read_block_position()?, command: reader.read_limited_string(32767)?, mode: reader.read_varint()?, flags: reader.read_u8()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { location: packet_bytes.read_block_position()?, command: packet_bytes.read_limited_string(32767)?, mode: packet_bytes.read_varint()?, flags: packet_bytes.read_u8()? }));
     };
 }
 
@@ -932,8 +934,8 @@ impl Packet for PlayUpdateCommandBlockMinecartPacket {
 }
 
 impl PlayUpdateCommandBlockMinecartPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { entity_id: reader.read_varint()?, command: reader.read_limited_string(32767)?, track_output: reader.read_bool()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { entity_id: packet_bytes.read_varint()?, command: packet_bytes.read_limited_string(32767)?, track_output: packet_bytes.read_bool()? }));
     };
 }
 
@@ -949,8 +951,8 @@ impl Packet for PlayCreativeInventoryActionPacket {
 }
 
 impl PlayCreativeInventoryActionPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { slot: reader.read_i16::<NetworkEndian>()?, item: reader.read_item_stack()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { slot: packet_bytes.read_i16::<NetworkEndian>()?, item: packet_bytes.read_item_stack()? }));
     };
 }
 
@@ -971,14 +973,14 @@ impl Packet for PlayUpdateJigsawBlockPacket {
 }
 
 impl PlayUpdateJigsawBlockPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
         return Ok(Box::new(Self {
-            location: reader.read_block_position()?,
-            name: reader.read_identifier()?,
-            target: reader.read_identifier()?,
-            pool: reader.read_identifier()?,
-            final_state: reader.read_limited_string(32767)?,
-            joint_type: reader.read_limited_string(32767)?,
+            location: packet_bytes.read_block_position()?,
+            name: packet_bytes.read_identifier()?,
+            target: packet_bytes.read_identifier()?,
+            pool: packet_bytes.read_identifier()?,
+            final_state: packet_bytes.read_limited_string(32767)?,
+            joint_type: packet_bytes.read_limited_string(32767)?,
         }));
     };
 }
@@ -1009,24 +1011,24 @@ impl Packet for PlayUpdateStructureBlockPacket {
 }
 
 impl PlayUpdateStructureBlockPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
         return Ok(Box::new(Self {
-            location: reader.read_block_position()?,
-            action: reader.read_varint()?,
-            mode: reader.read_varint()?,
-            name: reader.read_limited_string(32767)?,
-            offset_x: reader.read_i8()?,
-            offset_y: reader.read_i8()?,
-            offset_z: reader.read_i8()?,
-            size_x: reader.read_i8()?,
-            size_y: reader.read_i8()?,
-            size_z: reader.read_i8()?,
-            mirror: reader.read_varint()?,
-            rotation: reader.read_varint()?,
-            metadata: reader.read_limited_string(128)?,
-            integrety: reader.read_f32::<NetworkEndian>()?,
-            seed: reader.read_i64::<NetworkEndian>()?,
-            flags: reader.read_u8()?,
+            location: packet_bytes.read_block_position()?,
+            action: packet_bytes.read_varint()?,
+            mode: packet_bytes.read_varint()?,
+            name: packet_bytes.read_limited_string(32767)?,
+            offset_x: packet_bytes.read_i8()?,
+            offset_y: packet_bytes.read_i8()?,
+            offset_z: packet_bytes.read_i8()?,
+            size_x: packet_bytes.read_i8()?,
+            size_y: packet_bytes.read_i8()?,
+            size_z: packet_bytes.read_i8()?,
+            mirror: packet_bytes.read_varint()?,
+            rotation: packet_bytes.read_varint()?,
+            metadata: packet_bytes.read_limited_string(128)?,
+            integrety: packet_bytes.read_f32::<NetworkEndian>()?,
+            seed: packet_bytes.read_i64::<NetworkEndian>()?,
+            flags: packet_bytes.read_u8()?,
         }));
     };
 }
@@ -1046,13 +1048,13 @@ impl Packet for PlayUpdateSignBlockPacket {
 }
 
 impl PlayUpdateSignBlockPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
         return Ok(Box::new(Self {
-            location: reader.read_block_position()?,
-            line_1: reader.read_limited_string(384)?,
-            line_2: reader.read_limited_string(384)?,
-            line_3: reader.read_limited_string(384)?,
-            line_4: reader.read_limited_string(384)?,
+            location: packet_bytes.read_block_position()?,
+            line_1: packet_bytes.read_limited_string(384)?,
+            line_2: packet_bytes.read_limited_string(384)?,
+            line_3: packet_bytes.read_limited_string(384)?,
+            line_4: packet_bytes.read_limited_string(384)?,
         }));
     };
 }
@@ -1068,8 +1070,8 @@ impl Packet for PlayAnimationPacket {
 }
 
 impl PlayAnimationPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { hand: reader.read_varint()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { hand: packet_bytes.read_varint()? }));
     };
 }
 
@@ -1084,8 +1086,8 @@ impl Packet for PlaySpectatePacket {
 }
 
 impl PlaySpectatePacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { target: reader.read_u128::<NetworkEndian>()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { target: packet_bytes.read_u128::<NetworkEndian>()? }));
     };
 }
 
@@ -1106,15 +1108,15 @@ impl Packet for PlayPlayerBlockPlacementPacket {
 }
 
 impl PlayPlayerBlockPlacementPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
         return Ok(Box::new(Self {
-            hand: reader.read_varint()?,
-            location: reader.read_block_position()?,
-            face: reader.read_u8()?,
-            cusor_position_x: reader.read_f32::<NetworkEndian>()?,
-            cusor_position_y: reader.read_f32::<NetworkEndian>()?,
-            cusor_position_z: reader.read_f32::<NetworkEndian>()?,
-            inside_block: reader.read_bool()?,
+            hand: packet_bytes.read_varint()?,
+            location: packet_bytes.read_block_position()?,
+            face: packet_bytes.read_u8()?,
+            cusor_position_x: packet_bytes.read_f32::<NetworkEndian>()?,
+            cusor_position_y: packet_bytes.read_f32::<NetworkEndian>()?,
+            cusor_position_z: packet_bytes.read_f32::<NetworkEndian>()?,
+            inside_block: packet_bytes.read_bool()?,
         }));
     };
 }
@@ -1130,7 +1132,7 @@ impl Packet for PlayUseItemPacket {
 }
 
 impl PlayUseItemPacket {
-    pub const BUILDER: PacketBuilder = |reader| {
-        return Ok(Box::new(Self { hand: reader.read_varint()? }));
+    pub const BUILDER: PacketBuilder = |mut packet_bytes| {
+        return Ok(Box::new(Self { hand: packet_bytes.read_varint()? }));
     };
 }

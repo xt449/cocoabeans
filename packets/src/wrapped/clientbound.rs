@@ -1,5 +1,6 @@
-use serde_json::Value;
 use std::io::Write;
+
+use serde_json::Value;
 
 use crate::data::Destination;
 
