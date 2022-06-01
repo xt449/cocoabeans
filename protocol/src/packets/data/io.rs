@@ -6,7 +6,7 @@ use registries::item::ItemRegistry;
 
 use math::coordinate::BlockPosition;
 
-use crate::data::{Identifier, ItemStack};
+use crate::packets::data::{Identifier, ItemStack};
 
 // Bool
 

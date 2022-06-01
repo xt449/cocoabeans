@@ -16,3 +16,5 @@ edition = "2021"
 entities = { path = "../entities" }
 protocol = { path = "../protocol" }
 world = { path = "../world" }
+
+serde_json = "1.0.81"

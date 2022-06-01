@@ -2,10 +2,15 @@ use std::io::Write;
 
 use serde_json::Value;
 
-use crate::data::Destination;
+use math::coordinate::BlockPosition;
+
+use crate::packets::data::Destination;
+use crate::packets::identifier;
 
 pub trait Packet {
     fn write_to(&self, write: &mut dyn Write);
+
+    fn get_id() -> u8;
 }
 
 // Handshaking
@@ -20,6 +25,10 @@ impl Packet for StatusResponsePacket {
     fn write_to(&self, write: &mut dyn Write) {
         todo!()
     }
+
+    fn get_id() -> u8 {
+        identifier::clientbound::STATUS_RESPONSE_PACKET
+    }
 }
 
 pub struct StatusPongPacket {
@@ -29,6 +38,10 @@ pub struct StatusPongPacket {
 impl Packet for StatusPongPacket {
     fn write_to(&self, write: &mut dyn Write) {
         todo!()
+    }
+
+    fn get_id() -> u8 {
+        identifier::clientbound::STATUS_PONG_PACKET
     }
 }
 
@@ -42,6 +55,10 @@ impl Packet for LoginDisconnectPacket {
     fn write_to(&self, write: &mut dyn Write) {
         todo!()
     }
+
+    fn get_id() -> u8 {
+        identifier::clientbound::LOGIN_DISCONNECT_PACKET
+    }
 }
 
 pub struct LoginEncryptionRequestPacket {
@@ -54,6 +71,10 @@ impl Packet for LoginEncryptionRequestPacket {
     fn write_to(&self, write: &mut dyn Write) {
         todo!()
     }
+
+    fn get_id() -> u8 {
+        identifier::clientbound::LOGIN_ENCRYPTION_REQUEST_PACKET
+    }
 }
 
 pub struct LoginSuccessPacket {
@@ -65,6 +86,10 @@ impl Packet for LoginSuccessPacket {
     fn write_to(&self, write: &mut dyn Write) {
         todo!()
     }
+
+    fn get_id() -> u8 {
+        identifier::clientbound::LOGIN_SUCCESS_PACKET
+    }
 }
 
 pub struct LoginSetCompressionPacket {
@@ -74,6 +99,10 @@ pub struct LoginSetCompressionPacket {
 impl Packet for LoginSetCompressionPacket {
     fn write_to(&self, write: &mut dyn Write) {
         todo!()
+    }
+
+    fn get_id() -> u8 {
+        identifier::clientbound::LOGIN_SET_COMPRESSION_PACKET
     }
 }
 
@@ -86,6 +115,10 @@ pub struct LoginPluginRequestPacket {
 impl Packet for LoginPluginRequestPacket {
     fn write_to(&self, write: &mut dyn Write) {
         todo!()
+    }
+
+    fn get_id() -> u8 {
+        identifier::clientbound::LOGIN_PLUGIN_REQUEST_PACKET
     }
 }
 
@@ -133,7 +166,7 @@ pub struct PlaySpawnPaintingPacket {
     pub entity_id: u32,
     pub entity_uuid: u128,
     pub motive: u32,
-    pub location: (i32, i16, i32),
+    pub location: BlockPosition,
     pub direction: u8,
 }
 
@@ -148,7 +181,7 @@ pub struct PlaySpawnPlayerPacket {
 }
 
 pub struct PlaySculkVibrationSignalPacket {
-    pub source_location: (i32, i16, i32),
+    pub source_location: BlockPosition,
     pub destination_identifier: String,
     pub destination: Destination,
     pub arrival_ticks: i32,

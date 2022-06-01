@@ -5,15 +5,15 @@ use registries::potion::PotionRegistry;
 
 use math::coordinate::BlockPosition;
 
-use crate::data::io::{ReadBlockPositionExt, ReadBoolExt, ReadByteVecExt, ReadIdentifierExt, ReadItemStackExt, ReadLimitedStringExt, ReadVarIntExt};
-use crate::data::{Identifier, ItemStack};
-use crate::{Handler, State};
+use crate::packets::data::io::{ReadBlockPositionExt, ReadBoolExt, ReadByteVecExt, ReadIdentifierExt, ReadItemStackExt, ReadLimitedStringExt, ReadVarIntExt};
+use crate::packets::data::{Identifier, ItemStack};
+use crate::packets::{Handler, State};
 
 pub trait Packet {
     fn handle(&self, handler: &mut dyn Handler);
 }
 
-pub(crate) type PacketBuilder = fn(&[u8]) -> Result<Box<dyn Packet>>;
+pub type PacketBuilder = fn(&[u8]) -> Result<Box<dyn Packet>>;
 
 // Handshaking
 
