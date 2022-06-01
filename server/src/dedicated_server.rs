@@ -7,7 +7,7 @@ fn handle_connection(address: SocketAddr, stream: TcpStream) {
     println!("Starting client connection! ({address})");
     let mut connection = Connection::new(address, stream);
     loop {
-        if let Err(_) = connection.packet_handler.next() {
+        if let Err(_) = connection.packet_handler.next_packet() {
             // End of Stream
             break;
         }

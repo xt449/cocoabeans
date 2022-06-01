@@ -1,117 +1,33 @@
-use std::fs::read;
 use crate::io::{MinecraftReader, MinecraftWriter};
-use packets::data::io::{ReadVarIntExt, WriteVarIntExt};
 use packets::wrapped::{clientbound, serverbound};
 use packets::{Handler, State};
 use serde_json::json;
-use std::io::{Error, ErrorKind, Read, Take, Write};
-use std::net::TcpStream;
-use std::ops::Deref;
-use packets::wrapped::serverbound::Packet;
+use crate::connection::Connection;
 
 pub mod connection;
 pub mod io;
 
-pub struct PacketHandler {
-    stream: TcpStream,
+pub struct PacketHandler<'c> {
     state: State,
-    compression: bool,
-    encryption: Option<u64>,
+    connection: Option<&'c Connection<'c>>,
 }
 
 // Constructor
-impl PacketHandler {
-    pub fn new(stream: TcpStream) -> PacketHandler {
-        stream.set_nonblocking(false).expect("Unable to make TcpStream blocking");
-        return PacketHandler { stream: stream, state: State::HANDSHAKING, compression: false, encryption: None };
+impl<'c> PacketHandler<'c> {
+    pub fn new() -> PacketHandler<'c> {
+        return PacketHandler { state: State::HANDSHAKING, connection: None };
     }
 }
 
-// Packet Accessors
-impl PacketHandler {
-    pub fn write_packet<T: clientbound::Packet>(&mut self, packet: T) {
-        let mut buffer = MinecraftWriter::new();
-        packet.write_to(&mut buffer);
-        let bytes = buffer.to_slice();
-        println!("DEBUG Sending packet #{} with total length {}", bytes[0], bytes.len());
-
-        //bytes.insert(0, bytes.len() as u8);
-        println!("DEBUG [ {} ]", bytes.iter().map(|v| format!("{:02X}", v)).collect::<Vec<String>>().join(" "));
-
-        // let mut buffer = MinecraftReader::from(buffer.to_slice());
-        // println!(
-        //     "DEBUG id: {}, string: {}",
-        //     buffer.read_unsigned_byte()?,
-        //     buffer.read_string()?
-        // );
-
-        self.stream.write_varint(bytes.len() as i32).unwrap();
-        self.stream.write_all(bytes.deref()).unwrap();
-    }
-
-    pub fn next(&mut self) -> Result<(), Error> {
-        let packet = self.read_next_packet()?;
-        packet.handle(self);
-        return Ok(());
-    }
-
-    fn read_next_packet(&mut self) -> Result<&dyn serverbound::Packet, Error> {
-        let mut length: i32;
-        loop {
-            // do while
-            match self.stream.read_varint() {
-                Ok(v) => {
-                    length = v;
-                }
-                Err(e) => {
-                    return Err(e);
-                }
-            }
-            if length != 0 {
-                break;
-            }
-        }
-
-        let taken = (&self.stream).take(length as u64);
-
-        let packet_data = match self.encryption {
-            None => MinecraftReader::from(taken),
-            Some(cipher) => PacketHandler::decrypt_packet(cipher, MinecraftReader::from(taken)),
-        };
-
-        return self.decode_packet(packet_data);
-    }
-
-    fn decrypt_packet(cipher: u64, mut reader: MinecraftReader) -> MinecraftReader {
-        // TODO
-        return reader;
-    }
-
-    fn decode_packet(&self, mut reader: MinecraftReader) -> std::io::Result<&dyn serverbound::Packet> {
-        println!("Decoding packet {} bytes long...", reader.remaining());
-        let id = reader.read_varint().ok()?;
-        println!(
-            "Decoding packet id#{} in state {}",
-            id,
-            match self.state {
-                State::HANDSHAKING => "HANDSHAKING",
-                State::STATUS => "STATUS",
-                State::LOGIN => "LOGIN",
-                State::PLAY => "PLAY",
-            }
-        );
-
-        // return match self.protocol_version.get_packet_builder_from_id(self.state.clone(), id as u8) {
-        //     None => None,
-        //     Some(builder) => builder(reader),
-        // };
-
-        todo!()
+// Methods
+impl<'c> PacketHandler<'c> {
+    pub fn init(&mut self, connection: &'c Connection) {
+        self.connection = Some(connection);
     }
 }
 
-// Packet Handler
-impl Handler for PacketHandler {
+// Handler Implementation
+impl Handler for PacketHandler<'_> {
     // Handshaking
 
     fn handle_handshaking(&mut self, payload: &serverbound::HandshakingPacket) {
@@ -135,7 +51,7 @@ impl Handler for PacketHandler {
     // Status
 
     fn handle_status_request(&mut self, payload: &serverbound::StatusRequestPacket) {
-        clientbound::StatusResponsePacket {
+        self.connection.unwrap().write_packet(clientbound::StatusResponsePacket {
             // TODO
             json_payload: json!({
                 "version": {
@@ -150,13 +66,12 @@ impl Handler for PacketHandler {
                     "text": "Hello world",
                     "color": "aqua"
                 }
-            })
-            .to_string(),
-        }.write_to(self);
+            }),
+        });
     }
 
     fn handle_status_ping(&mut self, payload: &serverbound::StatusPingPacket) {
-        clientbound::StatusPongPacket { payload: payload.payload }.write_to(self);
+        self.connection.unwrap().write_packet(clientbound::StatusPongPacket { payload: payload.payload });
     }
 
     // Login

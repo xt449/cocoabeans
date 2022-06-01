@@ -1,5 +1,6 @@
 use crate::data::Destination;
 use std::io::Write;
+use serde_json::Value;
 
 pub trait Packet {
     fn write_to(&self, write: &mut dyn Write);
@@ -10,11 +11,23 @@ pub trait Packet {
 // Status
 
 pub struct StatusResponsePacket {
-    pub json_payload: String,
+    pub json_payload: Value,
+}
+
+impl Packet for StatusResponsePacket {
+    fn write_to(&self, write: &mut dyn Write) {
+        todo!()
+    }
 }
 
 pub struct StatusPongPacket {
     pub payload: u64,
+}
+
+impl Packet for StatusPongPacket {
+    fn write_to(&self, write: &mut dyn Write) {
+        todo!()
+    }
 }
 
 // Login
@@ -23,10 +36,22 @@ pub struct LoginDisconnectPacket {
     pub json_chat: String,
 }
 
+impl Packet for LoginDisconnectPacket {
+    fn write_to(&self, write: &mut dyn Write) {
+        todo!()
+    }
+}
+
 pub struct LoginEncryptionRequestPacket {
     pub server_id: String,
     pub key: Vec<u8>,
     pub verification_token: Vec<u8>,
+}
+
+impl Packet for LoginEncryptionRequestPacket {
+    fn write_to(&self, write: &mut dyn Write) {
+        todo!()
+    }
 }
 
 pub struct LoginSuccessPacket {
@@ -34,14 +59,32 @@ pub struct LoginSuccessPacket {
     pub username: String,
 }
 
+impl Packet for LoginSuccessPacket {
+    fn write_to(&self, write: &mut dyn Write) {
+        todo!()
+    }
+}
+
 pub struct LoginSetCompressionPacket {
     pub compression_threshold: u32,
+}
+
+impl Packet for LoginSetCompressionPacket {
+    fn write_to(&self, write: &mut dyn Write) {
+        todo!()
+    }
 }
 
 pub struct LoginPluginRequestPacket {
     pub message_id: u32,
     pub identifier: String,
     pub data: Vec<u8>,
+}
+
+impl Packet for LoginPluginRequestPacket {
+    fn write_to(&self, write: &mut dyn Write) {
+        todo!()
+    }
 }
 
 // Play
