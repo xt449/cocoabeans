@@ -1,59 +1,37 @@
-use std::io::{Read, Result, Write};
+use std::io::{Error, ErrorKind, Read, Result};
 use std::net::{SocketAddr, TcpStream};
-use std::ops::Deref;
-use packets::data::io::{ReadVarIntExt, WriteVarIntExt};
-use packets::State;
-use packets::wrapped::{build_packet, clientbound, serverbound};
 
-use crate::{MinecraftReader, MinecraftWriter, PacketHandler};
+use packets::data::io::ReadVarIntExt;
+use packets::wrapped::{build_packet, serverbound};
+use packets::State;
+
+use crate::PacketHandler;
 
 pub struct Connection<'c> {
     address: SocketAddr,
-    stream: TcpStream,
+    stream: &'c TcpStream,
     pub packet_handler: PacketHandler<'c>,
     compression: bool,
-    encryption: Option<u64>,
+    /*encryption: Option<u64>,*/
 }
 
 // Constructor
 impl<'c> Connection<'c> {
-    pub fn new(address: SocketAddr, stream: TcpStream) -> Connection<'c> {
+    pub fn new(address: SocketAddr, stream: &'c TcpStream) -> Connection<'c> {
         stream.set_nonblocking(false).expect("Unable to make TcpStream blocking");
-        let mut conn = Connection {
+
+        return Connection {
             address: address,
             stream: stream,
-            packet_handler: PacketHandler::new(),
+            packet_handler: PacketHandler::new(stream),
             compression: false,
-            encryption: None
+            /*encryption: None,*/
         };
-        conn.packet_handler.init(&conn);
-
-        return conn;
     }
 }
 
 // Methods
 impl Connection<'_> {
-    pub fn write_packet<T: clientbound::Packet>(&mut self, packet: T) {
-        let mut buffer = MinecraftWriter::new();
-        packet.write_to(&mut buffer);
-        let bytes = buffer.to_slice();
-        println!("DEBUG Sending packet #{} with total length {}", bytes[0], bytes.len());
-
-        //bytes.insert(0, bytes.len() as u8);
-        println!("DEBUG [ {} ]", bytes.iter().map(|v| format!("{:02X}", v)).collect::<Vec<String>>().join(" "));
-
-        // let mut buffer = MinecraftReader::from(buffer.to_slice());
-        // println!(
-        //     "DEBUG id: {}, string: {}",
-        //     buffer.read_unsigned_byte()?,
-        //     buffer.read_string()?
-        // );
-
-        self.stream.write_varint(bytes.len() as i32).unwrap();
-        self.stream.write_all(bytes.deref()).unwrap();
-    }
-
     pub fn next_packet(&mut self) -> Result<()> {
         let mut length: i32;
         loop {
@@ -71,19 +49,27 @@ impl Connection<'_> {
             }
         }
 
-        let taken = (&self.stream).take(length as u64);
+        let mut take = (&self.stream).take(length as u64);
+        if (take.limit() as i32) < length {
+            return Err(Error::new(ErrorKind::InvalidData, "Unexpected early end of stream while reading packet bytes"));
+        }
 
-        let packet_data = match self.encryption {
-            None => MinecraftReader::from(taken),
-            Some(cipher) => Self::decrypt_packet(cipher, MinecraftReader::from(taken)),
-        };
+        let mut array = Vec::with_capacity(length as usize);
+        take.read_to_end(&mut array)?;
 
-        return Ok(self.decode_packet(packet_data)?.handle(&mut self.packet_handler));
+        /*let packet_data = match self.encryption {
+            None => (&mut self.stream).take(length as u64),
+            Some(cipher) => Self::decrypt_packet(cipher, (&mut self.stream).take(length as u64)),
+        };*/
+
+        self.decode_packet(array.as_slice())?.handle(&mut self.packet_handler);
+
+        return Ok(());
     }
 
-    fn decode_packet(&self, mut reader: MinecraftReader) -> Result<Box<dyn serverbound::Packet>> {
-        println!("Decoding packet {} bytes long...", reader.remaining());
-        let id = reader.read_varint()?;
+    fn decode_packet(&self, mut packet_bytes: &[u8]) -> Result<Box<dyn serverbound::Packet>> {
+        println!("Decoding packet {} bytes long...", packet_bytes.len());
+        let id = packet_bytes.read_varint()?;
         println!(
             "Decoding packet id#{} in state {}",
             id,
@@ -95,14 +81,13 @@ impl Connection<'_> {
             }
         );
 
-        return build_packet(self.packet_handler.state, id as u32, reader);
+        return build_packet(self.packet_handler.state, id as u32, packet_bytes);
     }
 }
 
 // Functions
 impl Connection<'_> {
-    fn decrypt_packet(cipher: u64, mut reader: MinecraftReader) -> MinecraftReader {
-        // TODO
-        return reader;
+    fn decrypt_packet(cipher: u64, mut packet_bytes: &[u8]) -> &[u8] {
+        todo!()
     }
 }

@@ -1,9 +1,12 @@
-use crate::data::{Identifier, ItemStack};
+use std::io::{Error, ErrorKind, Read, Result, Write};
+
 use byteorder::{NetworkEndian, ReadBytesExt, WriteBytesExt};
-use math::coordinate::BlockPosition;
 use nbt::Value;
 use registries::item::ItemRegistry;
-use std::io::{Error, ErrorKind, Read, Result, Write};
+
+use math::coordinate::BlockPosition;
+
+use crate::data::{Identifier, ItemStack};
 
 // Bool
 

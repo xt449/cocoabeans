@@ -1,6 +1,7 @@
-use crate::data::Destination;
-use std::io::Write;
 use serde_json::Value;
+use std::io::Write;
+
+use crate::data::Destination;
 
 pub trait Packet {
     fn write_to(&self, write: &mut dyn Write);

@@ -1,10 +1,11 @@
-use crate::data::io::{ReadBlockPositionExt, ReadBoolExt, ReadByteVecExt, ReadIdentifierExt, ReadItemStackExt, ReadLimitedStringExt, ReadVarIntExt};
-use crate::data::{Identifier, ItemStack};
-use crate::{Handler, State};
 use byteorder::{NetworkEndian, ReadBytesExt};
 use math::coordinate::BlockPosition;
 use registries::potion::PotionRegistry;
 use std::io::{Error, ErrorKind, Read, Result, Take};
+
+use crate::data::io::{ReadBlockPositionExt, ReadBoolExt, ReadByteVecExt, ReadIdentifierExt, ReadItemStackExt, ReadLimitedStringExt, ReadVarIntExt};
+use crate::data::{Identifier, ItemStack};
+use crate::{Handler, State};
 
 pub trait Packet {
     fn handle(&self, handler: &mut dyn Handler);

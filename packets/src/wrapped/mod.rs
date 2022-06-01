@@ -1,30 +1,21 @@
-use std::io::{Error, ErrorKind, Read, Result, Take};
 use crate::{Packet, State};
+use std::io::{Error, ErrorKind, Result};
 
 pub mod clientbound;
 pub mod serverbound;
 
-pub fn build_packet(connection_state: State, packet_id: u32, reader: &mut Take<&mut dyn Read>) -> Result<Box<dyn Packet>> {
+pub fn build_packet(connection_state: State, packet_id: u32, packet_bytes: &[u8]) -> Result<Box<dyn Packet>> {
     return match connection_state {
-        State::HANDSHAKING => HANDSHAKING.get(packet_id as usize).ok_or(Error::new(ErrorKind::InvalidData, "Unknown packet id"))?(reader),
-        State::PLAY => PLAY.get(packet_id as usize).ok_or(Error::new(ErrorKind::InvalidData, "Unknown packet id"))?(reader),
-        State::STATUS => STATUS.get(packet_id as usize).ok_or(Error::new(ErrorKind::InvalidData, "Unknown packet id"))?(reader),
-        State::LOGIN => LOGIN.get(packet_id as usize).ok_or(Error::new(ErrorKind::InvalidData, "Unknown packet id"))?(reader),
-    }
+        State::HANDSHAKING => HANDSHAKING.get(packet_id as usize).ok_or(Error::new(ErrorKind::InvalidData, "Unknown packet id"))?(packet_bytes),
+        State::PLAY => PLAY.get(packet_id as usize).ok_or(Error::new(ErrorKind::InvalidData, "Unknown packet id"))?(packet_bytes),
+        State::STATUS => STATUS.get(packet_id as usize).ok_or(Error::new(ErrorKind::InvalidData, "Unknown packet id"))?(packet_bytes),
+        State::LOGIN => LOGIN.get(packet_id as usize).ok_or(Error::new(ErrorKind::InvalidData, "Unknown packet id"))?(packet_bytes),
+    };
 }
 
-const HANDSHAKING: [serverbound::PacketBuilder; 1] = [
-    serverbound::LoginPluginResponsePacket::BUILDER,
-];
-const PLAY: [serverbound::PacketBuilder; 2] = [
-    serverbound::StatusRequestPacket::BUILDER,
-    serverbound::StatusPingPacket::BUILDER,
-];
-const STATUS: [serverbound::PacketBuilder; 3] = [
-    serverbound::LoginStartPacket::BUILDER,
-    serverbound::LoginEncryptionResponsePacket::BUILDER,
-    serverbound::LoginPluginResponsePacket::BUILDER,
-];
+const HANDSHAKING: [serverbound::PacketBuilder; 1] = [serverbound::LoginPluginResponsePacket::BUILDER];
+const PLAY: [serverbound::PacketBuilder; 2] = [serverbound::StatusRequestPacket::BUILDER, serverbound::StatusPingPacket::BUILDER];
+const STATUS: [serverbound::PacketBuilder; 3] = [serverbound::LoginStartPacket::BUILDER, serverbound::LoginEncryptionResponsePacket::BUILDER, serverbound::LoginPluginResponsePacket::BUILDER];
 const LOGIN: [serverbound::PacketBuilder; 48] = [
     serverbound::PlayTeleportConfirmPacket::BUILDER,
     serverbound::PlayQueryBlockNBTPacket::BUILDER,

@@ -1,5 +1,6 @@
-use crate::wrapped::serverbound::*;
 use std::io::{Error, ErrorKind};
+
+use crate::wrapped::serverbound::*;
 
 pub mod data;
 mod identifier;

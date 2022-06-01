@@ -1,28 +1,37 @@
-use crate::io::{MinecraftReader, MinecraftWriter};
+use std::io::{Result, Write};
+use std::net::TcpStream;
+
+use serde_json::json;
+
+use packets::data::io::WriteVarIntExt;
 use packets::wrapped::{clientbound, serverbound};
 use packets::{Handler, State};
-use serde_json::json;
-use crate::connection::Connection;
 
 pub mod connection;
-pub mod io;
 
 pub struct PacketHandler<'c> {
     state: State,
-    connection: Option<&'c Connection<'c>>,
+    stream: &'c TcpStream,
 }
 
 // Constructor
 impl<'c> PacketHandler<'c> {
-    pub fn new() -> PacketHandler<'c> {
-        return PacketHandler { state: State::HANDSHAKING, connection: None };
+    pub fn new(stream: &'c TcpStream) -> PacketHandler<'c> {
+        return PacketHandler { state: State::HANDSHAKING, stream: stream };
     }
 }
 
 // Methods
-impl<'c> PacketHandler<'c> {
-    pub fn init(&mut self, connection: &'c Connection) {
-        self.connection = Some(connection);
+impl PacketHandler<'_> {
+    pub fn write_packet<T: clientbound::Packet>(&mut self, packet: T) -> Result<()> {
+        let mut buffer = Vec::with_capacity(128);
+        packet.write_to(&mut buffer);
+
+        println!("DEBUG Sending packet #{} with total length {}", buffer[0], buffer.len());
+        println!("DEBUG [ {} ]", buffer.iter().map(|v| format!("{:02X}", v)).collect::<Vec<String>>().join(" "));
+
+        self.stream.write_varint(buffer.len() as i32)?;
+        return self.stream.write_all(&buffer);
     }
 }
 
@@ -38,12 +47,8 @@ impl Handler for PacketHandler<'_> {
         }
 
         match payload.next_state {
-            State::STATUS => {
-                self.state = State::STATUS;
-            }
-            State::LOGIN => {
-                self.state = State::LOGIN;
-            }
+            State::STATUS => self.state = State::STATUS,
+            State::LOGIN => self.state = State::LOGIN,
             _ => {}
         }
     }
@@ -51,7 +56,7 @@ impl Handler for PacketHandler<'_> {
     // Status
 
     fn handle_status_request(&mut self, payload: &serverbound::StatusRequestPacket) {
-        self.connection.unwrap().write_packet(clientbound::StatusResponsePacket {
+        self.write_packet(clientbound::StatusResponsePacket {
             // TODO
             json_payload: json!({
                 "version": {
@@ -67,11 +72,12 @@ impl Handler for PacketHandler<'_> {
                     "color": "aqua"
                 }
             }),
-        });
+        })
+        .expect(/*TODO*/ "TODO: panic message");
     }
 
     fn handle_status_ping(&mut self, payload: &serverbound::StatusPingPacket) {
-        self.connection.unwrap().write_packet(clientbound::StatusPongPacket { payload: payload.payload });
+        self.write_packet(clientbound::StatusPongPacket { payload: payload.payload }).expect(/*TODO*/ "TODO: panic message");
     }
 
     // Login
